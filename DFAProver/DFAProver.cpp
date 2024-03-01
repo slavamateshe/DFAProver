@@ -28,6 +28,46 @@ node* node_get(int q) {
 	return edge;
 }
 
+void add_to_list(node* start, node* a) {
+	if (!start) {
+		start = a;
+		return;
+	}
+	node* n = start;
+	while (n) {
+		n = n->next;
+		if (n->q == a->q) {
+			return;
+		}
+	}
+	n->next = a;
+}
+
+void del_from_list(node* start, node* a) {
+	node* n = start;
+	while (n) {
+		if (!n->next) {
+			return;
+		}
+		if (n->next == a) {
+			if (n->next->next) {
+				n->next = n->next->next;
+			}
+			else {
+				n->next = NULL;
+			}
+		}
+	}
+}
+
+void free_list(node* n) {
+	for (node* t = n->next; t; t = t->next) {
+		free(n);
+		n = t;
+	}
+	free(n);
+}
+
 graph* graph_init(int n, int dim) {
 	graph* g = (graph*)malloc(sizeof(graph));
 	g->count = n;
@@ -106,12 +146,12 @@ typedef struct nfa {
     int dim;
     int n;
     graph* g;
-    int* start;
-    int* end;
+    node* start;
+    node* end;
 } nfa;
 
 
-nfa* nfa_init(int dim, int n, int* start, int* end) {
+nfa* nfa_init(int dim, int n, node* start, node* end) {
 	nfa* NFA = (nfa*)malloc(sizeof(nfa));
 	NFA->dim = dim;
 	NFA->n = n;
@@ -121,7 +161,7 @@ nfa* nfa_init(int dim, int n, int* start, int* end) {
 	return NFA;
 }
 
-void* nfa_free(nfa* NFA) {
+void nfa_free(nfa* NFA) {
 	graph_free(NFA->g, NFA->dim);
 	free(NFA->start);
 	free(NFA->end);
@@ -143,12 +183,21 @@ nfa* nfa_read(const char* s) {
 	f >> n;
 
 	f >> start_len;
-	int* start = (int*)malloc(sizeof(int) * start_len);
-	for (int i = 0; i < start_len; i++) f >> start[i];
+	int x;
+
+	node* start = NULL;
+	for (int i = 0; i < start_len; i++) {
+		f >> x;
+		add_to_list(start, node_get(x));
+	}
 
 	f >> end_len;
-	int* end = (int*)malloc(sizeof(int) * end_len);
-	for (int i = 0; i < end_len; i++) f >> end[i];
+	node* end = NULL;
+	for (int i = 0; i < start_len; i++) {
+		f >> x;
+		add_to_list(end, node_get(x));
+	}
+
 	nfa* NFA = nfa_init(dim, n, start, end);
 	f >> edges_len;
 	for (int i = 0; i < edges_len; i++) {
@@ -181,35 +230,30 @@ void nfa_to_dot(nfa* NFA, const char* s) {
 }
 
 int nfa_check(nfa* NFA, int str) {
-	int* q = NFA->start;
-	int* used = (int*)malloc(sizeof(int) * NFA->n);
-
-	for (int i = 0; str > 0; i++, str /= 2) {
-		for (int j = 0; j < NFA->n; j++) {
-			used[j] = 0;
-		}
-
-		int* qn = (int*)malloc(0);
-		int c = 0;
-		for (int j = 0; j < sizeof(q) / sizeof(int); j++) {
-			node* n = NFA->g->adj_list[q[j]].symbols[str % 2].head;
-			while (n) {
-				if (used[n->q] == 0) {
-					used[n->q] = 1;
-					c++;
-					qn = (int*)realloc(qn, c);
-					qn[c - 1] = n->q;
-				}
-				n->next;
+	node* current = NFA->start;
+	for(; str; str >>= 1) {
+		node* n = current;
+		node* qnew = NULL;
+		while (n) {
+			node* q = NFA->g->adj_list[current->q].symbols[str & 1].head;
+			while (q) {
+				add_to_list(qnew, q);
+				q = q->next;
 			}
+			n = n->next;
 		}
-		q = qn;
+		current = qnew;
 	}
 
-	for (int i = 0; i < sizeof(NFA->end) / sizeof(int); i++) {
-		if (used[NFA->end[i]]) {
-			return 1;
+	while (current) {
+		node* n = NFA->end;
+		while (n) {
+			if (current->q == n->q) {
+				return 1;
+			}
+			n = n->next;
 		}
+		current = current->next;
 	}
 	return 0;
 }
@@ -217,8 +261,9 @@ int nfa_check(nfa* NFA, int str) {
 
 int main()
 {
-	nfa* a = nfa_read("graph.txt");
-	nfa_to_dot(a, "graph2.dot");
+	nfa* a = nfa_read("3div.txt");
+	nfa_to_dot(a, "3div.dot");
+	int x;
+	cin >> x;
+	cout << "Work in progress...";//nfa_check(a, x);
 }
-
-
