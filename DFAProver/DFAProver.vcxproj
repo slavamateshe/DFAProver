@@ -127,7 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="data_struct.cpp" />
     <ClCompile Include="DFAProver.cpp" />
+    <ClCompile Include="nfa.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="data_struct.h" />
+    <ClInclude Include="nfa.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
