@@ -111,9 +111,10 @@ int nfa_check(nfa* NFA, int str) {
 	return 0;
 }
 
-nfa* union_nfa(nfa* n1, nfa* n2) {
+// Renatus Cartesius
+
+nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 	node* new_start = NULL;
-	node* new_end = NULL;
 	int c1, c2, q1, q2;
 
 	for (node* start1 = n1->start; start1; start1 = start1->next) {
@@ -123,14 +124,7 @@ nfa* union_nfa(nfa* n1, nfa* n2) {
 		}
 	}
 
-	for (node* end1 = n1->end; end1; end1 = end1->next) {
-		for (node* end2 = n2->end; end2; end2 = end2->next) {
-			c2 = end1->q * n1->n + end2->q;
-			new_end = list_add(new_end, node_get(c2));
-		}
-	}
-
-	nfa* new_n = nfa_init(max(n1->dim, n2->dim), n1->n * n2->n, new_start, new_end);
+	nfa* new_n = nfa_init(max(n1->dim, n2->dim), n1->n * n2->n, new_start, NULL);
 
 	for (int symb = 0; symb < pow(2, min(n1->dim, n2->dim)); symb++) {
 		for (int i = 0; i < n1->n; i++) {
@@ -147,5 +141,60 @@ nfa* union_nfa(nfa* n1, nfa* n2) {
 
 		}
 	}
+	return new_n;
+}
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="n1"></param>
+/// <param name="n2"></param>
+/// <returns></returns>
+nfa* nfa_intersect(nfa* n1, nfa* n2) {
+	nfa* new_n = nfa_cartesian(n1, n2);
+	node* new_end = NULL;
+	int state_num = 0;
+
+	for (node* end1 = n1->end; end1; end1 = end1->next) {
+		for (node* end2 = n2->end; end2; end2 = end2->next) {
+			state_num = end1->q * n1->n + end2->q;
+			new_end = list_add(new_end, node_get(state_num));
+		}
+	}
+
+	new_n->end = list_add(new_n->end, new_end);
+}
+
+/// <summary>
+/// In nfa's union we take cartesian product and set (q,p) as a final state iff 
+/// q is a final state of n1 
+/// OR
+/// p is a final state of n2 
+/// </summary>
+/// <param name="n1"></param>
+/// <param name="n2"></param>
+/// <returns></returns>
+nfa* nfa_union(nfa* n1, nfa* n2) {
+	nfa* new_n = nfa_cartesian(n1, n2);
+	node* new_end = NULL;
+	int state_num = 0;
+
+	for (int i = 0; i < n1->n; i++) {
+		for (node* end2 = n2->end; end2; end2 = end2->next) {
+			state_num = i * n1->n + end2->q;
+			new_end = list_add(new_end, node_get(state_num));
+		}
+	}
+
+
+	for (int i = 0; i < n2->n; i++) {
+		for (node* end1 = n1->end; end1; end1 = end1->next) {
+			state_num = i * n2->n + end1->q;
+			new_end = list_add(new_end, node_get(state_num));
+		}
+	}
+
+	new_n->end = list_add(new_n->end, new_end);
+
 	return new_n;
 }
