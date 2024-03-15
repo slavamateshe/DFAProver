@@ -20,4 +20,8 @@ nfa* nfa_read(const char* s);
 void nfa_to_dot(nfa* NFA, const char* s);
 int nfa_check(nfa* NFA, int str);
 
-nfa* union_nfa(nfa* n1, nfa* n2);
+nfa* nfa_cartesian(nfa* n1, nfa* n2);
+
+nfa* nfa_intersect(nfa* n1, nfa* n2);
+
+nfa* nfa_union(nfa* n1, nfa* n2);
