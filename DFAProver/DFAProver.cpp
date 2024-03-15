@@ -28,19 +28,26 @@ node* node_get(int q) {
 	return edge;
 }
 
-void add_to_list(node* start, node* a) {
+node* add_to_list(node* start, node* a) {
 	if (!start) {
-		start = a;
-		return;
+		start = node_get(a->q);
+		return start;
 	}
 	node* n = start;
+	node* t = start;
+	int is_first = true;
 	while (n) {
-		n = n->next;
 		if (n->q == a->q) {
-			return;
+			return start;
 		}
+		if (!is_first) {
+			t = t->next;
+		}
+		n = n->next;
+		is_first = false;
 	}
-	n->next = a;
+	t->next = a;
+	return start;
 }
 
 void del_from_list(node* start, node* a) {
@@ -188,14 +195,14 @@ nfa* nfa_read(const char* s) {
 	node* start = NULL;
 	for (int i = 0; i < start_len; i++) {
 		f >> x;
-		add_to_list(start, node_get(x));
+		start = add_to_list(start, node_get(x));
 	}
 
 	f >> end_len;
 	node* end = NULL;
 	for (int i = 0; i < start_len; i++) {
 		f >> x;
-		add_to_list(end, node_get(x));
+		end = add_to_list(end, node_get(x));
 	}
 
 	nfa* NFA = nfa_init(dim, n, start, end);
@@ -235,9 +242,9 @@ int nfa_check(nfa* NFA, int str) {
 		node* n = current;
 		node* qnew = NULL;
 		while (n) {
-			node* q = NFA->g->adj_list[current->q].symbols[str & 1].head;
+			node* q = NFA->g->adj_list[n->q].symbols[str & 1].head;
 			while (q) {
-				add_to_list(qnew, q);
+				qnew = add_to_list(qnew, q);
 				q = q->next;
 			}
 			n = n->next;
@@ -261,9 +268,9 @@ int nfa_check(nfa* NFA, int str) {
 
 int main()
 {
-	nfa* a = nfa_read("3div.txt");
-	nfa_to_dot(a, "3div.dot");
+	nfa* a = nfa_read("expr.txt");
+	//nfa_to_dot(a, "3div.dot");
 	int x;
 	cin >> x;
-	cout << "Work in progress...";//nfa_check(a, x);
+	cout << nfa_check(a, x);
 }
