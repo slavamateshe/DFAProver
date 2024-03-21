@@ -25,3 +25,5 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2);
 nfa* nfa_intersect(nfa* n1, nfa* n2);
 
 nfa* nfa_union(nfa* n1, nfa* n2);
+
+int nfa_is_dfa(nfa* n);
