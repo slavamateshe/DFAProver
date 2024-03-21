@@ -163,6 +163,7 @@ nfa* nfa_intersect(nfa* n1, nfa* n2) {
 	}
 
 	new_n->end = list_add(new_n->end, new_end);
+	return new_n;
 }
 
 /// <summary>
@@ -197,4 +198,21 @@ nfa* nfa_union(nfa* n1, nfa* n2) {
 	new_n->end = list_add(new_n->end, new_end);
 
 	return new_n;
+}
+
+int nfa_is_dfa(nfa* n) {
+	node* nd_1;
+	node* nd_2;
+
+	for (int i = 0; i < n->n; i++) {
+		for (int j = 0; j < pow(2, n->dim); j++) {
+
+			nd_1 = n->g->adj_list[i].symbols[j].head;
+			if (nd_1 != NULL) {
+				nd_2 = nd_1->next;
+				if (nd_2 && nd_2->next) return 0;
+			}
+		}
+	}
+	return 1;
 }
