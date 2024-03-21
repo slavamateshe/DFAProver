@@ -46,7 +46,7 @@ nfa* nfa_read(const char* s) {
 
 	f >> end_len;
 	node* end = NULL;
-	for (int i = 0; i < start_len; i++) {
+	for (int i = 0; i < end_len; i++) {
 		f >> x;
 		end = list_add(end, node_get(x));
 	}
@@ -111,8 +111,6 @@ int nfa_check(nfa* NFA, int str) {
 	return 0;
 }
 
-// Renatus Cartesius
-
 nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 	node* new_start = NULL;
 	int c1, c2, q1, q2;
@@ -144,12 +142,6 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 	return new_n;
 }
 
-/// <summary>
-/// 
-/// </summary>
-/// <param name="n1"></param>
-/// <param name="n2"></param>
-/// <returns></returns>
 nfa* nfa_intersect(nfa* n1, nfa* n2) {
 	nfa* new_n = nfa_cartesian(n1, n2);
 	node* new_end = NULL;
@@ -163,17 +155,9 @@ nfa* nfa_intersect(nfa* n1, nfa* n2) {
 	}
 
 	new_n->end = list_add(new_n->end, new_end);
+	return new_n;
 }
 
-/// <summary>
-/// In nfa's union we take cartesian product and set (q,p) as a final state iff 
-/// q is a final state of n1 
-/// OR
-/// p is a final state of n2 
-/// </summary>
-/// <param name="n1"></param>
-/// <param name="n2"></param>
-/// <returns></returns>
 nfa* nfa_union(nfa* n1, nfa* n2) {
 	nfa* new_n = nfa_cartesian(n1, n2);
 	node* new_end = NULL;
