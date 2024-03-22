@@ -6,11 +6,13 @@ using namespace std;
 
 nfa* nfa_init(int dim, int n, node* start, node* end) {
 	nfa* NFA = (nfa*)malloc(sizeof(nfa));
-	NFA->dim = dim;
-	NFA->n = n;
-	NFA->g = graph_init(n, dim);
-	NFA->start = start;
-	NFA->end = end;
+	if (NFA) {
+		NFA->dim = dim;
+		NFA->n = n;
+		NFA->g = graph_init(n, dim);
+		NFA->start = start;
+		NFA->end = end;
+	}
 	return NFA;
 }
 
@@ -46,7 +48,7 @@ nfa* nfa_read(const char* s) {
 
 	f >> end_len;
 	node* end = NULL;
-	for (int i = 0; i < start_len; i++) {
+	for (int i = 0; i < end_len; i++) {
 		f >> x;
 		end = list_add(end, node_get(x));
 	}
@@ -111,8 +113,6 @@ int nfa_check(nfa* NFA, int str) {
 	return 0;
 }
 
-// Renatus Cartesius
-
 nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 	node* new_start = NULL;
 	int c1, c2, q1, q2;
@@ -144,12 +144,6 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 	return new_n;
 }
 
-/// <summary>
-/// 
-/// </summary>
-/// <param name="n1"></param>
-/// <param name="n2"></param>
-/// <returns></returns>
 nfa* nfa_intersect(nfa* n1, nfa* n2) {
 	nfa* new_n = nfa_cartesian(n1, n2);
 	node* new_end = NULL;
@@ -166,15 +160,6 @@ nfa* nfa_intersect(nfa* n1, nfa* n2) {
 	return new_n;
 }
 
-/// <summary>
-/// In nfa's union we take cartesian product and set (q,p) as a final state iff 
-/// q is a final state of n1 
-/// OR
-/// p is a final state of n2 
-/// </summary>
-/// <param name="n1"></param>
-/// <param name="n2"></param>
-/// <returns></returns>
 nfa* nfa_union(nfa* n1, nfa* n2) {
 	nfa* new_n = nfa_cartesian(n1, n2);
 	node* new_end = NULL;
@@ -208,7 +193,7 @@ int nfa_is_dfa(nfa* n) {
 		for (int j = 0; j < pow(2, n->dim); j++) {
 
 			nd_1 = n->g->adj_list[i].symbols[j].head;
-			if (nd_1 != NULL) {
+			if (nd_1) {
 				nd_2 = nd_1->next;
 				if (nd_2 && nd_2->next) return 0;
 			}
