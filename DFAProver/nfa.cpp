@@ -34,6 +34,11 @@ nfa* nfa_read(const char* s) {
 	int dim, n, start_len, end_len, q, symb, q_new, edges_len;
 
 	fstream f(s);
+	if (!f.is_open()) {
+		cout << "file not exist" << endl;
+		return NULL;
+	}
+
 	f >> dim;
 	f >> n;
 
@@ -155,8 +160,7 @@ nfa* nfa_intersect(nfa* n1, nfa* n2) {
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
-
-	new_n->end = list_add(new_n->end, new_end);
+	new_n->end = new_end;
 	return new_n;
 }
 
@@ -175,12 +179,12 @@ nfa* nfa_union(nfa* n1, nfa* n2) {
 
 	for (int i = 0; i < n2->n; i++) {
 		for (node* end1 = n1->end; end1; end1 = end1->next) {
-			state_num = i * n2->n + end1->q;
+			state_num = n1->n * end1->q + i;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
 
-	new_n->end = list_add(new_n->end, new_end);
+	new_n->end = new_end;
 
 	return new_n;
 }
