@@ -18,8 +18,8 @@ nfa* nfa_init(int dim, int n, node* start, node* end) {
 
 void nfa_free(nfa* NFA) {
 	graph_free(NFA->g, NFA->dim);
-	free(NFA->start);
-	free(NFA->end);
+	list_free(NFA->start);
+	list_free(NFA->end);
 }
 
 void nfa_add(nfa* NFA, int q, int symb, int q_new) {
@@ -63,6 +63,32 @@ nfa* nfa_read(const char* s) {
 	}
 	f.close();
 	return NFA;
+}
+
+void nfa_write(nfa* NFA, const char* s) {
+	int k1 = 0, k2 = 0;
+	ofstream f(s);
+
+	f << NFA->dim << endl;
+	f << NFA->n << endl;
+	for (node* curr = NFA->start; curr; curr = curr->next, k1++);
+	f << k1 << endl; 
+	for (node* curr = NFA->start; curr; curr = curr->next)
+		f << curr->q << endl;
+	for (node* curr = NFA->end; curr; curr = curr->next, k2++);
+	f << k2 << endl;
+	for (node* curr = NFA->end; curr;  curr = curr->next)
+		f << curr->q << endl;
+
+	for (int i = 0; i < NFA->n; i++) {
+		for (int j = 0; j < (1 << NFA->dim); j++) {
+			node* n = NFA->g->adj_list[i].symbols[j].head;
+			if (n) {
+				for (; n; n = n->next)
+					f << i << " " << j << " " << n->q << endl;
+			}
+		}
+	}
 }
 
 void nfa_to_dot(nfa* NFA, const char* s) {
@@ -119,7 +145,7 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 
 	for (node* start1 = n1->start; start1; start1 = start1->next) {
 		for (node* start2 = n2->start; start2; start2 = start2->next) {
-			c1 = start1->q * n1->n + start2->q;
+			c1 = start2->q * n1->n + start1->q;
 			new_start = list_add(new_start, node_get(c1));
 		}
 	}
@@ -129,10 +155,10 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 	for (int symb = 0; symb < pow(2, min(n1->dim, n2->dim)); symb++) {
 		for (int i = 0; i < n1->n; i++) {
 			for (int j = 0; j < n2->n; j++) {
-				q1 = i * n1->n + j;
+				q1 = j * n1->n + i;
 				for (node* nd1 = n1->g->adj_list[i].symbols[symb].head; nd1; nd1 = nd1->next) {
 					for (node* nd2 = n2->g->adj_list[j].symbols[symb].head; nd2; nd2 = nd2->next) {
-						q2 = nd1->q * n1->n + nd2->q;
+						q2 = nd2->q * n1->n + nd1->q;
 						nfa_add(new_n, q1, symb, q2);
 					}
 				}
@@ -151,12 +177,12 @@ nfa* nfa_intersect(nfa* n1, nfa* n2) {
 
 	for (node* end1 = n1->end; end1; end1 = end1->next) {
 		for (node* end2 = n2->end; end2; end2 = end2->next) {
-			state_num = end1->q * n1->n + end2->q;
+			state_num = end2->q * n1->n + end1->q;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
 
-	new_n->end = list_add(new_n->end, new_end);
+	new_n->end = new_end;
 	return new_n;
 }
 
@@ -165,23 +191,21 @@ nfa* nfa_union(nfa* n1, nfa* n2) {
 	node* new_end = NULL;
 	int state_num = 0;
 
-	for (int i = 0; i < n1->n; i++) {
-		for (node* end2 = n2->end; end2; end2 = end2->next) {
-			state_num = i * n1->n + end2->q;
+	for (node* end2 = n2->end; end2; end2 = end2->next) {
+		for (int i = 0; i < n1->n; i++) {
+			state_num = end2->q * n1->n + i;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
 
-
-	for (int i = 0; i < n2->n; i++) {
-		for (node* end1 = n1->end; end1; end1 = end1->next) {
-			state_num = i * n2->n + end1->q;
+	for (node* end1 = n1->end; end1; end1 = end1->next) {
+		for (int i = 0; i < n2->n; i++) {
+			state_num = i * n1->n + end1->q;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
 
-	new_n->end = list_add(new_n->end, new_end);
-
+	new_n->end = new_end;
 	return new_n;
 }
 
@@ -201,3 +225,4 @@ int nfa_is_dfa(nfa* n) {
 	}
 	return 1;
 }
+
