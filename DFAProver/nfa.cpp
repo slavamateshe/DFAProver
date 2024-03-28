@@ -89,13 +89,21 @@ void nfa_to_dot(nfa* NFA, const char* s) {
 	f.close();
 }
 
-int nfa_check(nfa* NFA, int str) {
+int nfa_check(nfa* NFA, int* str) {
 	node* current = NFA->start;
-	for (; str; str >>= 1) {
+	for (int k = 0; ; k++) {
+		int symb = 0;
+		for (int i = 0; i < NFA->dim; i++) {
+			symb += ((str[i] >> k) & 1) << i;
+		}
+		if (symb == 0) {
+			break;
+		}
+
 		node* n = current;
 		node* qnew = NULL;
 		while (n) {
-			node* q = NFA->g->adj_list[n->q].symbols[str & 1].head;
+			node* q = NFA->g->adj_list[n->q].symbols[symb].head;
 			while (q) {
 				qnew = list_add(qnew, q);
 				q = q->next;
@@ -220,8 +228,10 @@ nfa* nfa_extend(nfa* a, int n) {
 	for (int i = 0; i < a->n; i++) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
 			for (node* nd = a->g->adj_list[i].symbols[symb].head; nd; nd = nd->next) {
-				nfa_add(b, i, (symb & ((1 << n) - 1)) + 0 + (symb & (1 << (a->dim - 1)) - 1) - (symb & ((1 << n) - 1)), nd->q);
-				nfa_add(b, i, (symb & ((1 << n) - 1)) + 1 + (symb & (1 << (a->dim - 1)) - 1) - (symb & ((1 << n) - 1)), nd->q);
+				int right = symb & ((1 << n) - 1);
+				int left = ((symb - right) << (n + 1));
+				nfa_add(b, i, left + 0 + right, nd->q);
+				nfa_add(b, i, left + (1 << n) + right, nd->q);
 			}
 		}
 	}

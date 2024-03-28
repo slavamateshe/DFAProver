@@ -18,7 +18,7 @@ void nfa_remove(nfa* NFA, int q, int symb, int q_del);
 nfa* nfa_read(const char* s);
 
 void nfa_to_dot(nfa* NFA, const char* s);
-int nfa_check(nfa* NFA, int str);
+int nfa_check(nfa* NFA, int* str);
 
 nfa* nfa_cartesian(nfa* n1, nfa* n2);
 
@@ -27,3 +27,5 @@ nfa* nfa_intersect(nfa* n1, nfa* n2);
 nfa* nfa_union(nfa* n1, nfa* n2);
 
 int nfa_is_dfa(nfa* n);
+
+nfa* nfa_extend(nfa* a, int n);

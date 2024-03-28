@@ -8,21 +8,17 @@ using namespace std;
 int main()
 {
 	nfa* a = nfa_read("2div.txt");
-	nfa* b = nfa_read("3div.txt");
+	nfa* b = nfa_extend(a, 0);
 
-	nfa* c = nfa_union(a, b);
-	for (node* n = c->start; n; n = n->next) {
-		cout << n->q << " ";
-	}
-	cout << endl;
-	for (node* n = c->end; n; n = n->next) {
-		cout << n->q << " ";
-	}
-	cout << endl;
-	
 	for (int i = 0; i < 100; i++) {
-		if (nfa_check(c, i)) {
-			cout << i << endl;
+		for (int j = 0; j < 10; j++) {
+			int* str = (int*)malloc(2 * sizeof(int));
+			str[0] = i;
+			str[1] = j;
+			if (nfa_check(b, str)) {
+				cout << i << " " << j << endl;
+			}
 		}
 	}
+
 }
