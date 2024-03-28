@@ -231,6 +231,31 @@ int nfa_is_dfa(nfa* n) {
 	return 1;
 }
 
+nfa* nfa_projection(nfa* a, int n) {
+	int new_symb;
+	node* start = NULL;
+
+	for (node* x = a->start; x; x = x->next) {
+		start = list_add(start, node_get(x->q));
+	}
+	node* end = NULL;
+	for (node* x = a->end; x; x = x->next) {
+		end = list_add(end, node_get(x->q));
+	}
+	nfa* b = nfa_init(a->dim - 1, a->n, start, end);
+
+	for (int i = 0; i < a->n; i++) {
+		for (int symb = 0; symb < (1 << a->dim); symb++) {
+			for (node* nd = a->g->adj_list[i].symbols[symb].head; nd; nd = nd->next) {
+				new_symb = ((symb >> n) << (n - 1)) + (((1 << n) - 1) & symb);
+				nfa_add(b, i, symb, nd->q);
+			}
+		}
+	}
+	return b;
+}
+
+
 nfa* nfa_extend(nfa* a, int n) {
 	node* start = NULL;
 	for (node* x = a->start; x; x = x->next) {
