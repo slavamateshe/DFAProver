@@ -34,6 +34,11 @@ nfa* nfa_read(const char* s) {
 	int dim, n, start_len, end_len, q, symb, q_new, edges_len;
 
 	fstream f(s);
+	if (!f.is_open()) {
+		cout << "file not exist" << endl;
+		return NULL;
+	}
+
 	f >> dim;
 	f >> n;
 
@@ -182,7 +187,7 @@ nfa* nfa_intersect(nfa* n1, nfa* n2) {
 		}
 	}
 
-	new_n->end = new_end;
+	new_n->end = list_add(new_n->end, new_end);
 	return new_n;
 }
 
@@ -226,3 +231,24 @@ int nfa_is_dfa(nfa* n) {
 	return 1;
 }
 
+nfa* nfa_extend(nfa* a, int n) {
+	node* start = NULL;
+	for (node* x = a->start; x; x = x->next) {
+		start = list_add(start, node_get(x->q));
+	}
+	node* end = NULL;
+	for (node* x = a->end; x; x = x->next) {
+		end = list_add(end, node_get(x->q));
+	}
+	nfa* b = nfa_init(a->dim + 1, a->n, start, end);
+
+	for (int i = 0; i < a->n; i++) {
+		for (int symb = 0; symb < (1 << a->dim); symb++) {
+			for (node* nd = a->g->adj_list[i].symbols[symb].head; nd; nd = nd->next) {
+				nfa_add(b, i, (symb & ((1 << n) - 1)) + 0 + (symb & (1 << (a->dim - 1)) - 1) - (symb & ((1 << n) - 1)), nd->q);
+				nfa_add(b, i, (symb & ((1 << n) - 1)) + 1 + (symb & (1 << (a->dim - 1)) - 1) - (symb & ((1 << n) - 1)), nd->q);
+			}
+		}
+	}
+	return b;
+}
