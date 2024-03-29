@@ -7,17 +7,12 @@ using namespace std;
 
 int main()
 {
-	nfa* a = nfa_read("2div.txt");
-	nfa* b = nfa_extend(a, 0);
-
-	for (int i = 0; i < 100; i++) {
-		for (int j = 0; j < 10; j++) {
-			int* str = (int*)malloc(2 * sizeof(int));
-			str[0] = i;
-			str[1] = j;
-			if (nfa_check(b, str)) {
-				cout << i << " " << j << endl;
-			}
-		}
-	}
+	nfa* a = nfa_read("sum.txt");
+	cout << a->g->adj_list[0].symbols[5].head->q << endl;
+	nfa* b = nfa_projection(a, 1);
+	nfa_write(b, "sum_2.txt");
+	/*nfa_add(a, 0, 1, 0);
+	nfa_write(a, "3div_prime.txt");
+	a = nfa_read("3div_prime.txt");
+	nfa_to_dot(a, "3div.dot");*/
 }

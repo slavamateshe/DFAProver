@@ -71,7 +71,7 @@ nfa* nfa_read(const char* s) {
 }
 
 void nfa_write(nfa* NFA, const char* s) {
-	int k1 = 0, k2 = 0;
+	int k1 = 0, k2 = 0, k = 0;
 	ofstream f(s);
 
 	f << NFA->dim << endl;
@@ -88,12 +88,21 @@ void nfa_write(nfa* NFA, const char* s) {
 	for (int i = 0; i < NFA->n; i++) {
 		for (int j = 0; j < (1 << NFA->dim); j++) {
 			node* n = NFA->g->adj_list[i].symbols[j].head;
+			if (n) k++;
+		}
+	}
+	f << k << endl;
+
+	for (int i = 0; i < NFA->n; i++) {
+		for (int j = 0; j < (1 << NFA->dim); j++) {
+			node* n = NFA->g->adj_list[i].symbols[j].head;
 			if (n) {
 				for (; n; n = n->next)
 					f << i << " " << j << " " << n->q << endl;
 			}
 		}
 	}
+	f.close();
 }
 
 void nfa_to_dot(nfa* NFA, const char* s) {
@@ -251,12 +260,13 @@ nfa* nfa_projection(nfa* a, int n) {
 		end = list_add(end, node_get(x->q));
 	}
 	nfa* b = nfa_init(a->dim - 1, a->n, start, end);
-
+	nfa_write(a, "pipi.txt");
 	for (int i = 0; i < a->n; i++) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
 			for (node* nd = a->g->adj_list[i].symbols[symb].head; nd; nd = nd->next) {
-				new_symb = ((symb >> n) << (n - 1)) + (((1 << n) - 1) & symb);
-				nfa_add(b, i, symb, nd->q);
+				new_symb = ((symb >> n) << (n - 1)) + (((1 << (n - 1)) - 1) & symb);
+				nfa_add(b, i, new_symb, nd->q);
+				
 			}
 		}
 	}
