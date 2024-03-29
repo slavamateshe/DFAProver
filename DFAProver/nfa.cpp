@@ -128,10 +128,14 @@ int nfa_check(nfa* NFA, int* str) {
 	node* current = NFA->start;
 	for (int k = 0; ; k++) {
 		int symb = 0;
+		bool flag = false;
 		for (int i = 0; i < NFA->dim; i++) {
-			symb += ((str[i] >> k) & 1) << i;
+			symb += ((str[i] >> k) & 1) << (NFA->dim - i - 1);
+			if ((str[i] >> k) > 0) {
+				flag = true;
+			}
 		}
-		if (symb == 0) {
+		if (!flag) {
 			break;
 		}
 
@@ -231,6 +235,25 @@ nfa* nfa_union(nfa* n1, nfa* n2) {
 	return new_n;
 }
 
+nfa* nfa_complement(nfa* a) {
+	nfa* b = nfa_init(a->dim, a->n, a->start, NULL);
+	b->g = a->g;
+	node* end = NULL;
+	for (int i = 0; i < b->n; i++) {
+		bool fl = true;
+		for (node* nd = a->end; nd; nd = nd->next) {
+			if (i == nd->q) {
+				fl = false;
+			}
+		}
+		if (fl) {
+			end = list_add(end, node_get(i));
+		}
+	}
+	b->end = end;
+	return b;
+}
+
 int nfa_is_dfa(nfa* n) {
 	node* nd_1;
 	node* nd_2;
@@ -289,7 +312,7 @@ nfa* nfa_extend(nfa* a, int n) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
 			for (node* nd = a->g->adj_list[i].symbols[symb].head; nd; nd = nd->next) {
 				int right = symb & ((1 << n) - 1);
-				int left = ((symb - right) << (n + 1));
+				int left = ((symb - right) << 1);
 				nfa_add(b, i, left + 0 + right, nd->q);
 				nfa_add(b, i, left + (1 << n) + right, nd->q);
 			}

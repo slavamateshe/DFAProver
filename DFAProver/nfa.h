@@ -31,3 +31,7 @@ int nfa_is_dfa(nfa* n);
 nfa* nfa_projection(nfa* a, int n);
 
 nfa* nfa_extend(nfa* a, int n);
+nfa* nfa_extend(nfa* a, int n);
+nfa* nfa_projection(nfa* a, int n);
+
+nfa* nfa_complement(nfa* a);
