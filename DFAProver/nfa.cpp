@@ -110,6 +110,15 @@ void nfa_to_dot(nfa* NFA, const char* s) {
 
 	f << "digraph{" << endl;
 
+	f << "node [shape = doublecircle] ";
+
+	for (node* curr = NFA->end; curr; curr = curr->next) 
+		f << curr->q << " ";
+
+	f << endl;
+
+	f << "node [shape = circle]" << endl;
+
 	for (int i = 0; i < NFA->n; i++) {
 		for (int j = 0; j < (1 << NFA->dim); j++) {
 			node* n = NFA->g->adj_list[i].symbols[j].head;
@@ -287,7 +296,7 @@ nfa* nfa_projection(nfa* a, int n) {
 	for (int i = 0; i < a->n; i++) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
 			for (node* nd = a->g->adj_list[i].symbols[symb].head; nd; nd = nd->next) {
-				new_symb = ((symb >> n) << (n - 1)) + (((1 << (n - 1)) - 1) & symb);
+				new_symb = ((symb >> (n + 1)) << n) + (((1 << n) - 1) & symb);
 				nfa_add(b, i, new_symb, nd->q);
 				
 			}
@@ -319,4 +328,29 @@ nfa* nfa_extend(nfa* a, int n) {
 		}
 	}
 	return b;
+}
+
+nfa* nfa_swap(nfa* n, int i, int j) {
+	node* start = NULL;
+	for (node* x = n->start; x; x = x->next) {
+		start = list_add(start, node_get(x->q));
+	}
+	node* end = NULL;
+	for (node* x = n->end; x; x = x->next) {
+		end = list_add(end, node_get(x->q));
+	}
+	nfa* new_n = nfa_init(n->dim, n->n, start, end);
+
+	int p = max(i, j), q = min(i, j);
+	int t1 = (1 << p), t2 = (1 << q), new_symb;
+
+	for (int k = 0; k < n->n; k++) {
+		for (int symb = 0; symb < (1 << n->dim); symb++) {
+			new_symb = symb - (t1 & symb) - (t2 & symb) + ((t1 & symb) >> (p - q)) + ((t2 & symb) << (p - q));
+			for (node* current = n->g->adj_list[k].symbols[symb].head; current; current = current->next) {
+				nfa_add(new_n, k, new_symb, current->q);
+			}
+		}
+	}
+	return new_n;
 }
