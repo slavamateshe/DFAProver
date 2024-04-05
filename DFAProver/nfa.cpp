@@ -139,15 +139,13 @@ int nfa_check(nfa* NFA, int* str) {
 			break;
 		}
 
-		node* n = current;
 		node* qnew = NULL;
-		while (n) {
+		for (node* n = current; n; n = n->next) {
 			node* q = NFA->g->adj_list[n->q].symbols[symb].head;
 			while (q) {
-				qnew = list_add(qnew, q);
+				qnew = list_add(qnew, node_get(q->q));
 				q = q->next;
 			}
-			n = n->next;
 		}
 		current = qnew;
 	}
@@ -176,16 +174,18 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 		}
 	}
 
-	nfa* new_n = nfa_init(max(n1->dim, n2->dim), n1->n * n2->n, new_start, NULL);
+	nfa* new_n = nfa_init(n1->dim, n1->n * n2->n, new_start, NULL);
 
-	for (int symb = 0; symb < pow(2, min(n1->dim, n2->dim)); symb++) {
+	for (int symb = 0; symb < pow(2, n1->dim); symb++) {
 		for (int i = 0; i < n1->n; i++) {
 			for (int j = 0; j < n2->n; j++) {
 				q1 = j * n1->n + i;
 				for (node* nd1 = n1->g->adj_list[i].symbols[symb].head; nd1; nd1 = nd1->next) {
 					for (node* nd2 = n2->g->adj_list[j].symbols[symb].head; nd2; nd2 = nd2->next) {
-						q2 = nd2->q * n1->n + nd1->q;
-						nfa_add(new_n, q1, symb, q2);
+						if (nd1 && nd2) {
+							q2 = nd2->q * n1->n + nd1->q;
+							nfa_add(new_n, q1, symb, q2);
+						}
 					}
 				}
 

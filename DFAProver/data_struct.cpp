@@ -64,7 +64,7 @@ graph* graph_init(int n, int dim) {
 	g->count = n;
 	g->adj_list = (list_of_lists*)malloc(n * sizeof(list_of_lists));
 	for (int i = 0; i < n; i++) {
-		g->adj_list[i].symbols = (list_of_nodes*)malloc(pow(2, n) * sizeof(list_of_lists));
+		g->adj_list[i].symbols = (list_of_nodes*)malloc(pow(2, dim) * sizeof(list_of_lists));
 		for (int j = 0; j < pow(2, dim); j++) {
 			g->adj_list[i].symbols[j].head = NULL;
 		}
