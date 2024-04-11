@@ -28,10 +28,12 @@ nfa* nfa_union(nfa* n1, nfa* n2);
 
 int nfa_is_dfa(nfa* n);
 
-nfa* nfa_projection(nfa* a, int n);
-
 nfa* nfa_extend(nfa* a, int n);
 nfa* nfa_extend(nfa* a, int n);
 nfa* nfa_projection(nfa* a, int n);
 
 nfa* nfa_complement(nfa* a);
+
+nfa* nfa_swap(nfa* n, int i, int j);
+nfa* nfa_linear_equals(int a);
+nfa* nfa_sum_equals(nfa* a, nfa* b);

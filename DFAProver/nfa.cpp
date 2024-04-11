@@ -110,6 +110,15 @@ void nfa_to_dot(nfa* NFA, const char* s) {
 
 	f << "digraph{" << endl;
 
+	f << "node [shape = doublecircle] ";
+
+	for (node* curr = NFA->end; curr; curr = curr->next) 
+		f << curr->q << " ";
+
+	f << endl;
+
+	f << "node [shape = circle]" << endl;
+
 	for (int i = 0; i < NFA->n; i++) {
 		for (int j = 0; j < (1 << NFA->dim); j++) {
 			node* n = NFA->g->adj_list[i].symbols[j].head;
@@ -283,13 +292,11 @@ nfa* nfa_projection(nfa* a, int n) {
 		end = list_add(end, node_get(x->q));
 	}
 	nfa* b = nfa_init(a->dim - 1, a->n, start, end);
-	nfa_write(a, "pipi.txt");
 	for (int i = 0; i < a->n; i++) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
 			for (node* nd = a->g->adj_list[i].symbols[symb].head; nd; nd = nd->next) {
-				new_symb = ((symb >> n) << (n - 1)) + (((1 << (n - 1)) - 1) & symb);
+				new_symb = ((symb >> (n + 1)) << n) + (((1 << n) - 1) & symb);
 				nfa_add(b, i, new_symb, nd->q);
-				
 			}
 		}
 	}
@@ -319,4 +326,88 @@ nfa* nfa_extend(nfa* a, int n) {
 		}
 	}
 	return b;
+}
+
+nfa* nfa_swap(nfa* n, int i, int j) {
+	node* start = NULL;
+	for (node* x = n->start; x; x = x->next) {
+		start = list_add(start, node_get(x->q));
+	}
+	node* end = NULL;
+	for (node* x = n->end; x; x = x->next) {
+		end = list_add(end, node_get(x->q));
+	}
+	nfa* new_n = nfa_init(n->dim, n->n, start, end);
+
+	int p = max(i, j), q = min(i, j);
+	int t1 = (1 << p), t2 = (1 << q), new_symb;
+
+	for (int k = 0; k < n->n; k++) {
+		for (int symb = 0; symb < (1 << n->dim); symb++) {
+			new_symb = symb - (t1 & symb) - (t2 & symb) + ((t1 & symb) >> (p - q)) + ((t2 & symb) << (p - q));
+			for (node* current = n->g->adj_list[k].symbols[symb].head; current; current = current->next) {
+				nfa_add(new_n, k, new_symb, current->q);
+			}
+		}
+	}
+	return new_n;
+}
+
+nfa* nfa_sum_equals(nfa* a, nfa* b) {
+	nfa* u = a;
+	u = nfa_extend(u, 0);
+	u = nfa_extend(u, 1);
+	u = nfa_extend(u, 4);
+	u = nfa_swap(u, 2, 3);
+
+	nfa* v = b;
+	v = nfa_extend(v, 0);
+	v = nfa_extend(v, 2);
+	v = nfa_extend(v, 4);
+	v = nfa_swap(v, 1, 3);
+
+	nfa* w = nfa_read("sum.txt");
+	w = nfa_extend(w, 3);
+	w = nfa_extend(w, 4);
+
+	nfa* eq = nfa_read("equals.txt");
+	eq = nfa_extend(eq, 1);
+	eq = nfa_extend(eq, 1);
+	eq = nfa_extend(eq, 1);
+
+	u = nfa_intersect(u, v);
+	u = nfa_intersect(u, w);
+	u = nfa_intersect(u, eq);
+
+	u = nfa_projection(u, 0);
+	u = nfa_projection(u, 0);
+	u = nfa_projection(u, 0);
+
+	return u;
+}
+
+nfa* nfa_linear_equals(int a) {
+	int k = 0;
+	for (int i = 0; (a >> i) > 0; i++, k++);
+	nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
+	deg2[0] = nfa_read("equals.txt");
+	for (int i = 1; i < k; i++) {
+		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]);
+	}
+
+	nfa* ans = NULL;
+	bool fl = false;
+	for (int i = 0; (a >> i) > 0; i++) {
+		if (((a >> i) & 1) == 1) {
+			if (fl) {
+				ans = nfa_sum_equals(ans, deg2[i]);
+			}
+			else {
+				ans = deg2[i];
+				fl = true;
+			}
+		}
+	}
+
+	return ans;
 }
