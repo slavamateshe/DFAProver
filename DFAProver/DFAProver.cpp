@@ -7,16 +7,14 @@ using namespace std;
 
 int main()
 {
-	nfa* a = nfa_read("equals.txt");
-	nfa* b = nfa_read("sum.txt");
-	nfa* c = nfa_intersect(a, b);
-	nfa* d = nfa_intersect(c, b);
-	nfa* e = nfa_projection(d, 1);
-	nfa* f = nfa_projection(e, 1);
-	nfa* g = nfa_projection(f, 1);
-	int* r = (int*)malloc(sizeof(int));
+	nfa* t = nfa_linear_equals(4);
+
 	for (int i = 0; i < 10; i++) {
-		r[0] = i;
-		if (nfa_check(g, r)) cout << i << endl;
+		for (int j = 0; j < 10; j++) {
+			int b[5] = { i, j,};
+			if (nfa_check(t, b)) {
+				cout << i << " " << " " << j << endl;
+			}
+		}
 	}
 }
