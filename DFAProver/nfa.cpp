@@ -281,6 +281,7 @@ int nfa_is_dfa(nfa* n) {
 }
 
 nfa* nfa_projection(nfa* a, int n) {
+	n = a->dim - n - 1;
 	int new_symb;
 	node* start = NULL;
 
