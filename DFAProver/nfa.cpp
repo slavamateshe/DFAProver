@@ -22,6 +22,27 @@ void nfa_free(nfa* NFA) {
 	list_free(NFA->end);
 }
 
+nfa* nfa_copy(nfa* a) {
+	node* new_start = NULL;
+	node* new_end = NULL;
+	for (node* x = a->start; x; x = x->next) {
+		new_start = list_add(new_start, node_get(x->q));
+	}
+	for (node* x = a->end; x; x = x->next) {
+		new_end = list_add(new_end, node_get(x->q));
+	}
+	nfa* new_nfa = nfa_init(a->dim, a->n, new_start, new_end);
+
+	for (int i = 0; i < a->n; i++) {
+		for (int symb = 0; symb < (1 << a->dim); symb++) {
+			for (node* nd = a->g->adj_list[i].symbols[symb].head; nd; nd = nd->next) {
+				nfa_add(new_nfa, i, symb, nd->q);
+			}
+		}
+	}
+	return new_nfa;
+}
+
 void nfa_add(nfa* NFA, int q, int symb, int q_new) {
 	graph_add_arc(NFA->g, q, symb, q_new);
 }
@@ -411,4 +432,97 @@ nfa* nfa_linear_equals(int a) {
 	}
 
 	return ans;
+}
+
+void nfa_dfs(nfa* a, int q, int n, int* vis) {
+	int state_num;
+
+	for (int symb = 0; symb < (1 << a->dim); symb++) {
+		for (node* curr = a->g->adj_list[q].symbols[symb].head; curr; curr = curr->next) {
+			state_num = curr->q * n + q;
+			if (!vis[curr->q]) {
+				vis[curr->q] = 1;
+				nfa_dfs(a, curr->q, n, vis);
+			}
+		}
+	}
+}
+
+nfa* left_quot(nfa* a, nfa* b) {
+	int* vis = NULL;
+	node* initial_start = a->start;
+	nfa* lq = nfa_copy(a);
+	nfa* n = NULL;
+
+	free(lq->end);
+
+	lq->end = NULL;
+
+	for (int i = 0; i < a->n; i++) {
+		a->start = node_get(i);
+		n = nfa_intersect(a, b);
+
+		// if L(n) is non-empty -> add i to final states of lq.
+		// I.e. just check non-emptiness: construct a set of reachable states R(i) in n from its strating state.
+		// if R(i) intersect F(n) != 0 -> add i to final states of lq.
+
+		vis = (int*)calloc(a->n * b->n, sizeof(int));
+		nfa_dfs(n, i, a->n, vis);
+
+		for (node* curr = n->end; curr; curr = curr->next) {
+			if (vis[curr->q]) {
+				lq->end = list_add(lq->end, node_get(i));
+				break;
+			}
+		}
+
+		free(vis);
+		nfa_free(n);
+		free(a->start);
+	}
+	a->start = initial_start;
+	return lq;
+}
+
+nfa* right_quot(nfa* a, nfa* b) {
+	int* vis = NULL;
+	int state_num, s;
+	node* initial_end = a->end;
+	nfa* rq = nfa_copy(a);
+	nfa* n = NULL;
+
+	free(rq->start);
+
+	rq->start = NULL;
+
+	for (int i = 0; i < a->n; i++) {
+		a->end = node_get(i);
+		n = nfa_intersect(a, b);
+		s = 0;
+		//попадает ли в новое потенциальное конечное состояния хотя бы одно другое?
+		
+		for (node* curr = n->start; curr; curr = curr->next) {
+			vis = (int*)calloc(a->n * b->n, sizeof(int));
+			nfa_dfs(n, curr->q, a->n, vis);
+
+			for (int j = 0; j < a->n * b->n; j++) cout << vis[j] << " ";
+			cout << endl << endl;
+
+			for (int j = 0; j < b->n; j++) {
+				state_num = j * a->n + i;
+				s += vis[state_num];
+			}
+			if (s) {
+				rq->start = list_add(rq->start, node_get(i));
+				free(vis);
+				break;
+			}
+
+			free(vis);
+		}
+		nfa_free(n);
+		free(a->end);
+	}
+	a->end = initial_end;
+	return rq;
 }
