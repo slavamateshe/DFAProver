@@ -18,13 +18,19 @@ void test_mult_const(nfa* a, int t) {
 }
 
 int main()
-{
+{   /// (($div2(x)$ & $div3(x)$) | ~$div2(x)$)
 	int buffsize = 128;
 	char* input = (char*)malloc(buffsize * sizeof(char));
 	fgets(input, buffsize, stdin);
 	stack* rpn = infix_to_rpn(input);
-	while (rpn->size != 0) {
-		cout << stack_top(rpn) << " ";
-		stack_pop(rpn);
+	nfa* a = rpn_to_nfa(rpn);
+	for (int i = 0; i < 100; i++) {
+		int input[1] = {i};
+		if (nfa_check(a, input)) {
+			cout << i << " accept!!!!" << endl;
+		}
+		else {
+			cout << i << " reject" << endl;
+		}
 	}
 }
