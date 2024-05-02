@@ -437,7 +437,7 @@ nfa* nfa_del_unrechable(nfa* a) {
 	return b;
 }
 
-bool not_equal_states(node** partition, nfa* a, int q1, int q2, int t) {
+bool equal_states(node** partition, nfa* a, int q1, int q2, int t) {
 	for (int symb = 0; symb < (1 << a->dim); symb++) {
 		for (int i = 0; i < t; i++) {
 			if (node_in_list(a->g->adj_list[q1].symbols[symb].head, partition[i]) ^
@@ -449,52 +449,45 @@ bool not_equal_states(node** partition, nfa* a, int q1, int q2, int t) {
 	return true;
 }
 
-node** new_partition(node** partition, nfa* a, int t) {
-	bool changed = false;
-	int ind = -1;
-	int q1 = -1;
-	int q2 = -1;
-	for (int i = 0; i < t && changed; i++) {
+node** new_partition(node** partition, nfa* a, int* t, bool* changed) {
+	node** n_partition = (node**)malloc(0 * sizeof(node*));
+	int t_start = *t;
+	int p = 0;
+	for (int i = 0; i < *t; i++) {
 		node* s = partition[i];
-		for (node* n = s; n && changed; n = n->next) {
-			for (node* m = s; m && changed; m = m->next) {
-				if ((n->q != m->q) && not_equal_states(partition, a, n->q, m->q, t)) {
-					changed = true;
-					ind = i;
-					q1 = n->q;
-					q2 = m->q;
+		node** subpart = (node**)malloc(0 * sizeof(node*));
+		int k = 0;
+		for (node* n = s; n; n = n->next) {
+			bool eq_found = false;
+			for (int j = 0; j < k; j++) {
+				if ((n->q != subpart[j]->q) && equal_states(partition, a, n->q, subpart[j]->q, *t)) {
+					subpart[j] = list_add(subpart[j], node_get(n->q));
+					eq_found = true;
+					break;
 				}
 			}
-		}
-	}
-	if (!changed) {
-		return partition;
-	}
-	node** n_partition = (node**)malloc((t + 1) * sizeof(node*));
-	for (int i = 0; i < t; i++) {
-		if (i < ind) {
-			n_partition[i] = partition[i];
-		}
-		if (i == ind) {
-			n_partition[i] = node_get(q1);
-			node* s = NULL;
-			for (node* n = partition[i]; n; n = n->next) {
-				if (q1 != n->q) {
-					s = list_add(s, n);
-				}
+			if (!eq_found) {
+				subpart = (node**)realloc(subpart, (k + 1) * sizeof(node*));
+				subpart[k] = node_get(n->q);
+				k++;
 			}
-			n_partition[i + 1] = s;
-			
 		}
-		if (i > ind) {
-			n_partition[i + 1] = partition[i];
+		n_partition = (node**)realloc(n_partition, (p + k) * sizeof(node*));
+		for (int j = p; j < p + k; j++) {
+			n_partition[j] = subpart[j - p];
 		}
+		p += k;
+	}
+	*t = p;
+	if (t_start == *t) {
+		*changed = false;
 	}
 	return n_partition;
 }
 
 
-nfa* nfa_minimize(nfa* a) {
+nfa* nfa_minimize(nfa* x) {
+	nfa* a = nfa_del_unrechable(x);
 	node** partition = (node**)malloc(2 * sizeof(node*));
 	partition[0] = a->end;
 	partition[1] = NULL;
@@ -505,9 +498,21 @@ nfa* nfa_minimize(nfa* a) {
 		}
 	}
 	
-	while (new_partition(partition, a, t) != partition) {
-		partition = new_partition(partition, a, t);
-		t++;
+	bool changed = true;
+	while (true) {
+		node** n_partition = new_partition(partition, a, &t, &changed);
+		if (!changed) {
+			break;
+		}
+		partition = n_partition;
+
+		for (int i = 0; i < t; i++) {
+			for (node* n = partition[i]; n; n = n->next) {
+				cout << n->q << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;
 	}
 	
 	node* start = NULL;

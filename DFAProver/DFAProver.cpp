@@ -19,10 +19,10 @@ void test_mult_const(nfa* a, int t) {
 
 int main()
 {
-	nfa* t = nfa_linear_equals(5); // y = 5*x (15,3) i.e. (5*x,x)
-	cout << t->n;
-	nfa* b = nfa_del_unrechable(t);
-	cout << b->n << endl;
-	test_mult_const(t, 6);
-
+	nfa* a = nfa_read("example.txt");
+	nfa* b = nfa_minimize(a);
+	for (int i = 0; i < 1000; i++) {
+		int input[1] = { i };
+		cout << i << " " << nfa_check(a, input) << " " << nfa_check(b, input) << endl;
+	}
 }
