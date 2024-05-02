@@ -273,7 +273,10 @@ int nfa_is_dfa(nfa* n) {
 			nd_1 = n->g->adj_list[i].symbols[j].head;
 			if (nd_1) {
 				nd_2 = nd_1->next;
-				if (nd_2 && nd_2->next) return 0;
+				if (nd_2) {
+					cout << i << " " << j << endl;
+					return 0;
+				}
 			}
 		}
 	}
@@ -353,6 +356,173 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 	return new_n;
 }
 
+nfa* nfa_del_unrechable(nfa* a) {
+	node* reachable = node_get(a->start->q);
+	node* new_states = node_get(a->start->q);
+	while (new_states != NULL) {
+		node* temp = NULL;
+		for (node* n = new_states; n != NULL; n = n->next) {
+			for (int i = 0; i < (1 << (a->dim)); i++) {
+				for (node* t = a->g->adj_list[n->q].symbols[i].head; t != NULL; t = t->next) {
+					temp = list_add(temp, node_get(t->q));
+				}
+			}
+		}
+		new_states = NULL;
+		for (node* n = temp; n != NULL; n = n->next) {
+			if (!node_in_list(n, reachable)) {
+				new_states = list_add(new_states, node_get(n->q));
+			}
+		}
+		for (node* n = new_states; n != NULL; n = n->next) {
+			reachable = list_add(reachable, node_get(n->q));
+		}
+	}
+	int* new_q = (int*)malloc(a->n * sizeof(int));
+	int k = 0;
+	for (int i = 0; i < a->n; i++) {
+		if (node_in_list(node_get(i), reachable)) {
+			new_q[i] = k;
+			k++;
+		}
+		else {
+			new_q[i] = -1;
+		}
+	}
+
+	node* new_start = NULL;
+	for (node* n = a->start; n != NULL; n = n->next) {
+		if (new_q[n->q] != -1) {
+			new_start = list_add(new_start, node_get(new_q[n->q]));
+		}
+	}
+	node* new_end = NULL;
+	for (node* n = a->end; n != NULL; n = n->next) {
+		if (new_q[n->q] != -1) {
+			new_end = list_add(new_end, node_get(new_q[n->q]));
+		}
+	}
+	nfa* b = nfa_init(a->dim, k, new_start, new_end);
+	for (int i = 0; i < a->n; i++) {
+		for (int symb = 0; symb < (1 << a->dim); symb++) {
+			for (node* n = a->g->adj_list[i].symbols[symb].head; n != NULL; n = n->next) {
+				if (new_q[i] != -1 && new_q[n->q] != -1) {
+					nfa_add(b, new_q[i], symb, new_q[n->q]);
+				}
+			}
+		}
+	}
+	return b;
+}
+
+bool not_equal_states(node** partition, nfa* a, int q1, int q2, int t) {
+	for (int symb = 0; symb < (1 << a->dim); symb++) {
+		for (int i = 0; i < t; i++) {
+			if (node_in_list(a->g->adj_list[q1].symbols[symb].head, partition[i]) ^
+				node_in_list(a->g->adj_list[q2].symbols[symb].head, partition[i])) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+node** new_partition(node** partition, nfa* a, int t) {
+	bool changed = false;
+	int ind = -1;
+	int q1 = -1;
+	int q2 = -1;
+	for (int i = 0; i < t && changed; i++) {
+		node* s = partition[i];
+		for (node* n = s; n && changed; n = n->next) {
+			for (node* m = s; m && changed; m = m->next) {
+				if ((n->q != m->q) && not_equal_states(partition, a, n->q, m->q, t)) {
+					changed = true;
+					ind = i;
+					q1 = n->q;
+					q2 = m->q;
+				}
+			}
+		}
+	}
+	if (!changed) {
+		return partition;
+	}
+	node** n_partition = (node**)malloc((t + 1) * sizeof(node*));
+	for (int i = 0; i < t; i++) {
+		if (i < ind) {
+			n_partition[i] = partition[i];
+		}
+		if (i == ind) {
+			n_partition[i] = node_get(q1);
+			node* s = NULL;
+			for (node* n = partition[i]; n; n = n->next) {
+				if (q1 != n->q) {
+					s = list_add(s, n);
+				}
+			}
+			n_partition[i + 1] = s;
+			
+		}
+		if (i > ind) {
+			n_partition[i + 1] = partition[i];
+		}
+	}
+	return n_partition;
+}
+
+
+nfa* nfa_minimize(nfa* a) {
+	node** partition = (node**)malloc(2 * sizeof(node*));
+	partition[0] = a->end;
+	partition[1] = NULL;
+	int t = 2;
+	for (int i = 0; i < a->n; i++) {
+		if (!node_in_list(node_get(i), a->end)) {
+			partition[1] = list_add(partition[1], node_get(i));
+		}
+	}
+	
+	while (new_partition(partition, a, t) != partition) {
+		partition = new_partition(partition, a, t);
+		t++;
+	}
+	
+	node* start = NULL;
+	node* end = NULL;
+	for (int i = 0; i < t; i++) {
+		for (node* n = a->start; n; n = n->next) {
+			if (node_in_list(n, partition[i])) {
+				start = list_add(start, node_get(i));
+			}
+		}
+		for (node* n = a->end; n; n = n->next) {
+			if (node_in_list(n, partition[i])) {
+				end = list_add(end, node_get(i));
+			}
+		}
+	}
+	nfa* m = nfa_init(a->dim, t, start, end);
+	for (int i = 0; i < t; i++) {
+		for (node* n = partition[i]; n; n = n->next) {
+			for (int symb = 0; symb < (1 << a->dim); symb++) {
+				for (int j = 0; j < t; j++) {
+					if (node_in_list(a->g->adj_list[n->q].symbols[symb].head, partition[j])) {
+						nfa_add(m, i, symb, j);
+					}
+				}
+			}
+		}
+	}
+	return m;
+}
+
+/// <summary>
+/// Composes an automaton for a sum of the right-hand-sides
+/// </summary>
+/// <param name="a">an automaton for y = a_1*x</param>
+/// <param name="b">an automaton for y = b_1*x</param>
+/// <returns>an automaton for y = (a_1+b_1)*x</returns>
 nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	nfa* u = a;
 	u = nfa_extend(u, 0);
@@ -388,11 +558,11 @@ nfa* nfa_sum_equals(nfa* a, nfa* b) {
 
 nfa* nfa_linear_equals(int a) {
 	int k = 0;
-	for (int i = 0; (a >> i) > 0; i++, k++);
+	for (; (a >> k) > 0; k++);
 	nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
-	deg2[0] = nfa_read("equals.txt");
+	deg2[0] = nfa_read("equals.txt"); // x = y
 	for (int i = 1; i < k; i++) {
-		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]);
+		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
 	}
 
 	nfa* ans = NULL;
@@ -400,7 +570,7 @@ nfa* nfa_linear_equals(int a) {
 	for (int i = 0; (a >> i) > 0; i++) {
 		if (((a >> i) & 1) == 1) {
 			if (fl) {
-				ans = nfa_sum_equals(ans, deg2[i]);
+				ans = nfa_sum_equals(ans, deg2[i]); 
 			}
 			else {
 				ans = deg2[i];
@@ -408,6 +578,6 @@ nfa* nfa_linear_equals(int a) {
 			}
 		}
 	}
-
 	return ans;
 }
+

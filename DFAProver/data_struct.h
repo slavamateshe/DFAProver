@@ -21,6 +21,7 @@ typedef struct graph {
 node* node_get(int q);
 node* list_add(node* start, node* a);
 void list_del(node* start, node* a);
+bool node_in_list(node* a, node* list);
 void list_free(node* n);
 
 graph* graph_init(int n, int dim);

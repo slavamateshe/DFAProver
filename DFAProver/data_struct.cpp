@@ -50,6 +50,15 @@ void list_del(node* start, node* a) {
 	}
 }
 
+bool node_in_list(node* a, node* list) {
+	for (node* n = list; n != NULL; n = n->next) {
+		if (a->q == n->q) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void list_free(node* n) {
 	for (node* t = n->next; t; t = t->next) {
 		free(n);
