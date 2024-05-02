@@ -49,3 +49,5 @@ nfa* left_quot(nfa* a, nfa* b);
 nfa* right_quot(nfa* a, nfa* b);
 
 nfa* nfa_minimize(nfa* x);
+
+stack* infix_to_rpn(char* input);

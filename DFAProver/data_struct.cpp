@@ -11,6 +11,13 @@ node* node_get(int q) {
 	return edge;
 }
 
+node_str* node_str_get(char* str) {
+	node_str* edge = (node_str*)malloc(sizeof(node_str));
+	edge->str = str;
+	edge->next = NULL;
+	return edge;
+}
+
 node* list_add(node* start, node* a) {
 	if (!start) {
 		start = node_get(a->q);
@@ -138,4 +145,41 @@ void graph_free(graph* g, int dim) {
 	}
 	free(g->adj_list);
 	free(g);
+}
+
+stack* stack_init() {
+	stack* s = (stack*)malloc(sizeof(stack));
+	s->top = NULL;
+	s->size = 0;
+	return s;
+}
+
+void stack_push(stack* s, char* x) {
+	node_str* n = node_str_get(x);
+	if (!s->top) {
+		s->top = n;
+	}
+	else
+	{
+		n->next = s->top;
+		s->top = n;
+	}
+	s->size++;
+}
+
+void stack_pop(stack* s) {
+	if (s->top) {
+		if (s->top->next) {
+			node_str* n = s->top->next;
+			s->top = n;
+		}
+		else {
+			s->top = NULL;
+		}
+		s->size--;
+	}
+}
+
+char* stack_top(stack* s) {
+	return s->top->str;
 }

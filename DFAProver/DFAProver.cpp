@@ -19,10 +19,12 @@ void test_mult_const(nfa* a, int t) {
 
 int main()
 {
-	nfa* a = nfa_read("example.txt");
-	nfa* b = nfa_minimize(a);
-	for (int i = 0; i < 1000; i++) {
-		int input[1] = { i };
-		cout << i << " " << nfa_check(a, input) << " " << nfa_check(b, input) << endl;
+	int buffsize = 128;
+	char* input = (char*)malloc(buffsize * sizeof(char));
+	fgets(input, buffsize, stdin);
+	stack* rpn = infix_to_rpn(input);
+	while (rpn->size != 0) {
+		cout << stack_top(rpn) << " ";
+		stack_pop(rpn);
 	}
 }

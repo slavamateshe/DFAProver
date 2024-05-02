@@ -700,3 +700,72 @@ nfa* right_quot(nfa* a, nfa* b) {
 	a->end = initial_end;
 	return rq;
 }
+
+char* substr(char* string, int start, int end) {
+	char* sub = (char*)malloc((end - start + 2) * sizeof(char));
+	for (int i = start; i <= end; i++) {
+		sub[i - start] = string[i];
+	}
+	sub[end - start] = '\0';
+	return sub;
+}
+
+int prec(char x) {
+	if (x == '~') return 3;
+	if (x == '&') return 2;
+	if (x == '|') return 1;
+	return -1;
+}
+
+stack* infix_to_rpn(char* input) {
+	stack* operators = stack_init();
+	stack* rpn = stack_init();
+	int p = 0;
+	while (p < strlen(input)) {
+		char x = input[p];
+		char* token = (char*)malloc(2 * sizeof(char));
+		token[0] = x;
+		token[1] = '\0';
+		p++;
+		if (x == ' ') {
+			continue;
+		}
+		if (x == '$') {
+			int t = p;
+			for (; input[t] != '$'; t++);
+			token = substr(input, p - 1, t + 1);
+			p = t + 1;
+		}
+		if (token[0] == '$') {
+			stack_push(rpn, token);
+		}
+		else if (prec(token[0]) >= 0) {
+			while ((stack_top(operators)[0] != '(') && (prec(stack_top(operators)[0]) > prec(token[0]))) {
+				stack_push(rpn, stack_top(operators));
+				stack_pop(operators);
+			}
+			stack_push(operators, token);
+		}
+		else if (token[0] == '(') {
+			stack_push(operators, token);
+		}
+		else if (token[0] == ')') {
+			while (stack_top(operators)[0] != '(') {
+				stack_push(rpn, stack_top(operators));
+				stack_pop(operators);
+			}
+			stack_pop(operators);
+		}
+	}
+	while (operators->size != 0) {
+		stack_push(rpn, stack_top(operators));
+		stack_pop(operators);
+	}
+	stack* ans = stack_init();
+	while (rpn->size != 0) {
+		stack_push(ans, stack_top(rpn));
+		stack_pop(rpn);
+	}
+
+	return ans;
+}
