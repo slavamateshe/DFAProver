@@ -499,14 +499,12 @@ nfa* right_quot(nfa* a, nfa* b) {
 		a->end = node_get(i);
 		n = nfa_intersect(a, b);
 		s = 0;
+
 		//попадает ли в новое потенциальное конечное состояния хотя бы одно другое?
 		
 		for (node* curr = n->start; curr; curr = curr->next) {
 			vis = (int*)calloc(a->n * b->n, sizeof(int));
 			nfa_dfs(n, curr->q, a->n, vis);
-
-			for (int j = 0; j < a->n * b->n; j++) cout << vis[j] << " ";
-			cout << endl << endl;
 
 			for (int j = 0; j < b->n; j++) {
 				state_num = j * a->n + i;
@@ -517,7 +515,6 @@ nfa* right_quot(nfa* a, nfa* b) {
 				free(vis);
 				break;
 			}
-
 			free(vis);
 		}
 		nfa_free(n);
