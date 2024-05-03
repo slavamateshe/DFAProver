@@ -24,12 +24,18 @@
     <ClCompile Include="nfa.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="cli.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nfa.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="data_struct.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="cli.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -52,3 +52,4 @@ nfa* nfa_minimize(nfa* x);
 
 stack* infix_to_rpn(char* input);
 nfa* rpn_to_nfa(stack* rpn);
+char* substr(char* string, int start, int end);

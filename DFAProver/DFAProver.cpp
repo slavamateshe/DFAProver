@@ -1,6 +1,6 @@
 ﻿#include <iostream>
 #include <fstream>
-#include "nfa.h"
+#include "cli.h"
 
 using namespace std;
 
@@ -17,15 +17,19 @@ void test_mult_const(nfa* a, int t) {
 	}
 }
 
-int main()
-{   /// (($div2(x)$ & $div3(x)$) | ~$div2(x)$)
+void test_rpn() {
+	/// (($div2(x) & $div3(x)) | ~$div2(x))
+	
 	int buffsize = 128;
 	char* input = (char*)malloc(buffsize * sizeof(char));
 	fgets(input, buffsize, stdin);
 	stack* rpn = infix_to_rpn(input);
 	nfa* a = rpn_to_nfa(rpn);
-	for (int i = 0; i < 100; i++) {
-		int input[1] = {i};
+	if (!a) {
+		return;
+	}
+	for (int i = 0; i < 20; i++) {
+		int input[1] = { i };
 		if (nfa_check(a, input)) {
 			cout << i << " accept!!!!" << endl;
 		}
@@ -33,4 +37,31 @@ int main()
 			cout << i << " reject" << endl;
 		}
 	}
+	cout << a->n << endl;
+
+	nfa* b = nfa_minimize(a);
+	for (int i = 0; i < 20; i++) {
+		int input[1] = { i };
+		if (nfa_check(b, input)) {
+			cout << i << " accept!!!!" << endl;
+		}
+		else {
+			cout << i << " reject" << endl;
+		}
+	}
+	cout << b->n;
+}
+
+//void text_prover() {
+//	int buffsize = 128;
+//	char* input = (char*)malloc(buffsize * sizeof(char));
+//	fgets(input, buffsize, stdin);
+//	if (substr())
+//
+//}
+
+int main()
+{  
+	test_rpn();
+	
 }

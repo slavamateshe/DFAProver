@@ -194,33 +194,22 @@ int nfa_check(nfa* NFA, int* str) {
 }
 
 nfa* nfa_cartesian(nfa* n1, nfa* n2) {
-	node* new_start = NULL;
 	int c1, c2, q1, q2;
 
-	for (node* start1 = n1->start; start1; start1 = start1->next) {
-		for (node* start2 = n2->start; start2; start2 = start2->next) {
-			c1 = start1->q * n1->n + start2->q;
-			new_start = list_add(new_start, node_get(c1));
-		}
-	}
+	nfa* new_n = nfa_init(n1->dim, n1->n * n2->n, NULL, NULL);
 
-	nfa* new_n = nfa_init(n1->dim, n1->n * n2->n, new_start, NULL);
-
-	for (int symb = 0; symb < pow(2, n1->dim); symb++) {
+	for (int symb = 0; symb < (1 << n1->dim); symb++) {
 		for (int i = 0; i < n1->n; i++) {
 			for (int j = 0; j < n2->n; j++) {
-				q1 = i * n1->n + j;
+				q1 = j * n1->n + i;
 				for (node* nd1 = n1->g->adj_list[i].symbols[symb].head; nd1; nd1 = nd1->next) {
 					for (node* nd2 = n2->g->adj_list[j].symbols[symb].head; nd2; nd2 = nd2->next) {
-						if (nd1 && nd2) {
-							q2 = nd1->q * n1->n + nd2->q;
-							nfa_add(new_n, q1, symb, q2);
-						}
+						q2 = nd2->q * n1->n + nd1->q;
+						nfa_add(new_n, q1, symb, q2);
+						
 					}
 				}
-
 			}
-
 		}
 	}
 	return new_n;
@@ -228,40 +217,57 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 
 nfa* nfa_intersect(nfa* n1, nfa* n2) {
 	nfa* new_n = nfa_cartesian(n1, n2);
-	node* new_end = NULL;
-	int state_num = 0;
 
+	int state_num = 0;
+	node* new_start = NULL;
+	for (node* start1 = n1->start; start1; start1 = start1->next) {
+		for (node* start2 = n2->start; start2; start2 = start2->next) {
+			state_num = start2->q * n1->n + start1->q;
+			new_start = list_add(new_start, node_get(state_num));
+		}
+	}
+	new_n->start = new_start;
+
+	node* new_end = NULL;
 	for (node* end1 = n1->end; end1; end1 = end1->next) {
 		for (node* end2 = n2->end; end2; end2 = end2->next) {
-			state_num = end1->q * n1->n + end2->q;
+			state_num = end2->q * n1->n + end1->q;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
-
 	new_n->end = new_end;
+
 	return new_n;
 }
 
 nfa* nfa_union(nfa* n1, nfa* n2) {
 	nfa* new_n = nfa_cartesian(n1, n2);
-	node* new_end = NULL;
-	int state_num = 0;
 
+	node* new_start = NULL;
+	int state_num = 0;
+	for (node* start1 = n1->start; start1; start1 = start1->next) {
+		for (node* start2 = n2->start; start2; start2 = start2->next) {
+			state_num = start2->q * n1->n + start1->q;
+			new_start = list_add(new_start, node_get(state_num));
+		}
+	}
+	new_n->start = new_start;
+
+	node* new_end = NULL;
 	for (node* end2 = n2->end; end2; end2 = end2->next) {
 		for (int i = 0; i < n1->n; i++) {
-			state_num = i * n1->n + end2->q;
+			state_num = end2->q * n1->n + i;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
-
 	for (node* end1 = n1->end; end1; end1 = end1->next) {
 		for (int i = 0; i < n2->n; i++) {
-			state_num = end1->q * n1->n + i;
+			state_num = i * n1->n + end1->q;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
-
 	new_n->end = new_end;
+
 	return new_n;
 }
 
@@ -505,14 +511,6 @@ nfa* nfa_minimize(nfa* x) {
 			break;
 		}
 		partition = n_partition;
-
-		for (int i = 0; i < t; i++) {
-			for (node* n = partition[i]; n; n = n->next) {
-				cout << n->q << " ";
-			}
-			cout << endl;
-		}
-		cout << endl;
 	}
 	
 	node* start = NULL;
@@ -583,6 +581,42 @@ nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	return u;
 }
 
+nfa* nfa_cut_leading_zeros(nfa *a) {
+	node* start = node_get(0);
+	nfa* zeros = nfa_init(a->dim, 1, start, start);
+	nfa_add(zeros, 0, 0, 0);
+	return left_quot(a, zeros);
+	//left_quot
+}
+
+/// <summary>
+/// returns an automaton for (y = 2*x /\ a(x)) if a is a unary automaton
+/// </summary>
+/// <param name="a"></param>
+/// <returns></returns>
+nfa* nfa_double(nfa* a) {
+	nfa* result = NULL;
+	if (a->dim == 1) {
+		node* start = node_get(0);
+		nfa* mul2 = nfa_init(2, 2, start, start);
+		nfa_add(mul2, 0, 0, 0);
+		nfa_add(mul2, 0, 1, 1);
+		nfa_add(mul2, 1, 2, 1);
+		nfa_add(mul2, 1, 3, 0);
+		nfa* a1 = nfa_extend(a, 0);
+		nfa* conj = nfa_intersect(mul2, a1);
+		nfa* semi_result = nfa_projection(conj, 0);
+		nfa_free(a1);
+		nfa_free(mul2);
+	}
+	return result;
+}
+
+/// <summary>
+/// automaton for y = a * x
+/// </summary>
+/// <param name="a">coefficinet</param>
+/// <returns></returns>
 nfa* nfa_linear_equals(int a) {
 	int k = 0;
 	for (; (a >> k) > 0; k++);
@@ -590,6 +624,7 @@ nfa* nfa_linear_equals(int a) {
 	deg2[0] = nfa_read("equals.txt"); // x = y
 	for (int i = 1; i < k; i++) {
 		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
+		cout << deg2[i]->n << endl;
 	}
 
 	nfa* ans = NULL;
@@ -673,7 +708,7 @@ nfa* right_quot(nfa* a, nfa* b) {
 		a->end = node_get(i);
 		n = nfa_intersect(a, b);
 		s = 0;
-		//попадает ли в новое потенциальное конечное состояния хотя бы одно другое?
+		
 		
 		for (node* curr = n->start; curr; curr = curr->next) {
 			vis = (int*)calloc(a->n * b->n, sizeof(int));
@@ -699,115 +734,4 @@ nfa* right_quot(nfa* a, nfa* b) {
 	}
 	a->end = initial_end;
 	return rq;
-}
-
-char* substr(char* string, int start, int end) {
-	char* sub = (char*)malloc((end - start + 2) * sizeof(char));
-	for (int i = start; i <= end; i++) {
-		sub[i - start] = string[i];
-	}
-	sub[end - start + 1] = '\0';
-	return sub;
-}
-
-int prec(char x) {
-	if (x == '~') return 3;
-	if (x == '&') return 2;
-	if (x == '|') return 1;
-	return -1;
-}
-
-stack* infix_to_rpn(char* input) {
-	stack* operators = stack_init();
-	stack* rpn = stack_init();
-	int p = 0;
-	while (p < strlen(input)) {
-		char x = input[p];
-		char* token = (char*)malloc(2 * sizeof(char));
-		token[0] = x;
-		token[1] = '\0';
-		p++;
-		if (x == ' ') {
-			continue;
-		}
-		if (x == '$') {
-			int t = p;
-			for (; input[t] != '$'; t++);
-			token = substr(input, p - 1, t);
-			p = t + 1;
-		}
-		if (token[0] == '$') {
-			stack_push(rpn, token);
-		}
-		else if (prec(token[0]) >= 0) {
-			while (operators->size != 0 && (stack_top(operators)[0] != '(') && (prec(stack_top(operators)[0]) > prec(token[0]))) {
-				stack_push(rpn, stack_top(operators));
-				stack_pop(operators);
-			}
-			stack_push(operators, token);
-		}
-		else if (token[0] == '(') {
-			stack_push(operators, token);
-		}
-		else if (token[0] == ')') {
-			while (stack_top(operators)[0] != '(') {
-				stack_push(rpn, stack_top(operators));
-				stack_pop(operators);
-			}
-			stack_pop(operators);
-		}
-	}
-	while (operators->size != 0) {
-		stack_push(rpn, stack_top(operators));
-		stack_pop(operators);
-	}
-	stack* ans = stack_init();
-	while (rpn->size != 0) {
-		stack_push(ans, stack_top(rpn));
-		stack_pop(rpn);
-	}
-
-	return ans;
-}
-
-char* handle_name(char* input) {
-	int a = strlen(input);
-	input[a - 1] = 't';
-	input[a - 2] = 'x';
-	input[a - 3] = 't';
-	input[a - 4] = '.';
-	return substr(input, 1, a - 1);
-}
-
-nfa* rpn_to_nfa(stack* rpn) {
-	nfa** st = (nfa**)malloc(0);
-	int c = 0;
-	while (rpn->size != 0) {
-		if (stack_top(rpn)[0] == '$') {
-			c++;
-			st = (nfa**)realloc(st, c * sizeof(nfa*));
-			st[c - 1] = nfa_read(handle_name(stack_top(rpn)));
-			stack_pop(rpn);
-		}
-		else if (stack_top(rpn)[0] == '&') {
-			nfa* a = nfa_intersect(st[c - 1], st[c - 2]);
-			st = (nfa**)realloc(st, (c - 1) * sizeof(nfa*));
-			st[c - 2] = a;
-			stack_pop(rpn);
-			c--;
-		}
-		else if (stack_top(rpn)[0] == '|') {
-			nfa* a = nfa_union(st[c - 1], st[c - 2]);
-			st = (nfa**)realloc(st, (c - 1) * sizeof(nfa*));
-			st[c - 2] = a;
-			stack_pop(rpn);
-			c--;
-		}
-		else if (stack_top(rpn)[0] == '~') {
-			nfa* a = nfa_complement(st[c - 1]);
-			st[c - 1] = a;
-			stack_pop(rpn);
-		}
-	}
-	return st[0];
 }
