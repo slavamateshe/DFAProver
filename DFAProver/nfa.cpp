@@ -194,33 +194,22 @@ int nfa_check(nfa* NFA, int* str) {
 }
 
 nfa* nfa_cartesian(nfa* n1, nfa* n2) {
-	node* new_start = NULL;
 	int c1, c2, q1, q2;
 
-	for (node* start1 = n1->start; start1; start1 = start1->next) {
-		for (node* start2 = n2->start; start2; start2 = start2->next) {
-			c1 = start2->q * n1->n + start1->q;
-			new_start = list_add(new_start, node_get(c1));
-		}
-	}
+	nfa* new_n = nfa_init(n1->dim, n1->n * n2->n, NULL, NULL);
 
-	nfa* new_n = nfa_init(n1->dim, n1->n * n2->n, new_start, NULL);
-
-	for (int symb = 0; symb < pow(2, n1->dim); symb++) {
+	for (int symb = 0; symb < (1 << n1->dim); symb++) {
 		for (int i = 0; i < n1->n; i++) {
 			for (int j = 0; j < n2->n; j++) {
 				q1 = j * n1->n + i;
 				for (node* nd1 = n1->g->adj_list[i].symbols[symb].head; nd1; nd1 = nd1->next) {
 					for (node* nd2 = n2->g->adj_list[j].symbols[symb].head; nd2; nd2 = nd2->next) {
-						if (nd1 && nd2) {
-							q2 = nd2->q * n1->n + nd1->q;
-							nfa_add(new_n, q1, symb, q2);
-						}
+						q2 = nd2->q * n1->n + nd1->q;
+						nfa_add(new_n, q1, symb, q2);
+						
 					}
 				}
-
 			}
-
 		}
 	}
 	return new_n;
@@ -228,40 +217,57 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 
 nfa* nfa_intersect(nfa* n1, nfa* n2) {
 	nfa* new_n = nfa_cartesian(n1, n2);
-	node* new_end = NULL;
-	int state_num = 0;
 
+	int state_num = 0;
+	node* new_start = NULL;
+	for (node* start1 = n1->start; start1; start1 = start1->next) {
+		for (node* start2 = n2->start; start2; start2 = start2->next) {
+			state_num = start2->q * n1->n + start1->q;
+			new_start = list_add(new_start, node_get(state_num));
+		}
+	}
+	new_n->start = new_start;
+
+	node* new_end = NULL;
 	for (node* end1 = n1->end; end1; end1 = end1->next) {
 		for (node* end2 = n2->end; end2; end2 = end2->next) {
 			state_num = end2->q * n1->n + end1->q;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
+	new_n->end = new_end;
 
-	new_n->end = list_add(new_n->end, new_end);
 	return new_n;
 }
 
 nfa* nfa_union(nfa* n1, nfa* n2) {
 	nfa* new_n = nfa_cartesian(n1, n2);
-	node* new_end = NULL;
-	int state_num = 0;
 
+	node* new_start = NULL;
+	int state_num = 0;
+	for (node* start1 = n1->start; start1; start1 = start1->next) {
+		for (node* start2 = n2->start; start2; start2 = start2->next) {
+			state_num = start2->q * n1->n + start1->q;
+			new_start = list_add(new_start, node_get(state_num));
+		}
+	}
+	new_n->start = new_start;
+
+	node* new_end = NULL;
 	for (node* end2 = n2->end; end2; end2 = end2->next) {
 		for (int i = 0; i < n1->n; i++) {
 			state_num = end2->q * n1->n + i;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
-
 	for (node* end1 = n1->end; end1; end1 = end1->next) {
 		for (int i = 0; i < n2->n; i++) {
 			state_num = i * n1->n + end1->q;
 			new_end = list_add(new_end, node_get(state_num));
 		}
 	}
-
 	new_n->end = new_end;
+
 	return new_n;
 }
 
@@ -294,7 +300,10 @@ int nfa_is_dfa(nfa* n) {
 			nd_1 = n->g->adj_list[i].symbols[j].head;
 			if (nd_1) {
 				nd_2 = nd_1->next;
-				if (nd_2 && nd_2->next) return 0;
+				if (nd_2) {
+					cout << i << " " << j << endl;
+					return 0;
+				}
 			}
 		}
 	}
@@ -375,6 +384,170 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 	return new_n;
 }
 
+nfa* nfa_del_unrechable(nfa* a) {
+	node* reachable = node_get(a->start->q);
+	node* new_states = node_get(a->start->q);
+	while (new_states != NULL) {
+		node* temp = NULL;
+		for (node* n = new_states; n != NULL; n = n->next) {
+			for (int i = 0; i < (1 << (a->dim)); i++) {
+				for (node* t = a->g->adj_list[n->q].symbols[i].head; t != NULL; t = t->next) {
+					temp = list_add(temp, node_get(t->q));
+				}
+			}
+		}
+		new_states = NULL;
+		for (node* n = temp; n != NULL; n = n->next) {
+			if (!node_in_list(n, reachable)) {
+				new_states = list_add(new_states, node_get(n->q));
+			}
+		}
+		for (node* n = new_states; n != NULL; n = n->next) {
+			reachable = list_add(reachable, node_get(n->q));
+		}
+	}
+	int* new_q = (int*)malloc(a->n * sizeof(int));
+	int k = 0;
+	for (int i = 0; i < a->n; i++) {
+		if (node_in_list(node_get(i), reachable)) {
+			new_q[i] = k;
+			k++;
+		}
+		else {
+			new_q[i] = -1;
+		}
+	}
+
+	node* new_start = NULL;
+	for (node* n = a->start; n != NULL; n = n->next) {
+		if (new_q[n->q] != -1) {
+			new_start = list_add(new_start, node_get(new_q[n->q]));
+		}
+	}
+	node* new_end = NULL;
+	for (node* n = a->end; n != NULL; n = n->next) {
+		if (new_q[n->q] != -1) {
+			new_end = list_add(new_end, node_get(new_q[n->q]));
+		}
+	}
+	nfa* b = nfa_init(a->dim, k, new_start, new_end);
+	for (int i = 0; i < a->n; i++) {
+		for (int symb = 0; symb < (1 << a->dim); symb++) {
+			for (node* n = a->g->adj_list[i].symbols[symb].head; n != NULL; n = n->next) {
+				if (new_q[i] != -1 && new_q[n->q] != -1) {
+					nfa_add(b, new_q[i], symb, new_q[n->q]);
+				}
+			}
+		}
+	}
+	return b;
+}
+
+bool equal_states(node** partition, nfa* a, int q1, int q2, int t) {
+	for (int symb = 0; symb < (1 << a->dim); symb++) {
+		for (int i = 0; i < t; i++) {
+			if (node_in_list(a->g->adj_list[q1].symbols[symb].head, partition[i]) ^
+				node_in_list(a->g->adj_list[q2].symbols[symb].head, partition[i])) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+node** new_partition(node** partition, nfa* a, int* t, bool* changed) {
+	node** n_partition = (node**)malloc(0 * sizeof(node*));
+	int t_start = *t;
+	int p = 0;
+	for (int i = 0; i < *t; i++) {
+		node* s = partition[i];
+		node** subpart = (node**)malloc(0 * sizeof(node*));
+		int k = 0;
+		for (node* n = s; n; n = n->next) {
+			bool eq_found = false;
+			for (int j = 0; j < k; j++) {
+				if ((n->q != subpart[j]->q) && equal_states(partition, a, n->q, subpart[j]->q, *t)) {
+					subpart[j] = list_add(subpart[j], node_get(n->q));
+					eq_found = true;
+					break;
+				}
+			}
+			if (!eq_found) {
+				subpart = (node**)realloc(subpart, (k + 1) * sizeof(node*));
+				subpart[k] = node_get(n->q);
+				k++;
+			}
+		}
+		n_partition = (node**)realloc(n_partition, (p + k) * sizeof(node*));
+		for (int j = p; j < p + k; j++) {
+			n_partition[j] = subpart[j - p];
+		}
+		p += k;
+	}
+	*t = p;
+	if (t_start == *t) {
+		*changed = false;
+	}
+	return n_partition;
+}
+
+
+nfa* nfa_minimize(nfa* x) {
+	nfa* a = nfa_del_unrechable(x);
+	node** partition = (node**)malloc(2 * sizeof(node*));
+	partition[0] = a->end;
+	partition[1] = NULL;
+	int t = 2;
+	for (int i = 0; i < a->n; i++) {
+		if (!node_in_list(node_get(i), a->end)) {
+			partition[1] = list_add(partition[1], node_get(i));
+		}
+	}
+	
+	bool changed = true;
+	while (true) {
+		node** n_partition = new_partition(partition, a, &t, &changed);
+		if (!changed) {
+			break;
+		}
+		partition = n_partition;
+	}
+	
+	node* start = NULL;
+	node* end = NULL;
+	for (int i = 0; i < t; i++) {
+		for (node* n = a->start; n; n = n->next) {
+			if (node_in_list(n, partition[i])) {
+				start = list_add(start, node_get(i));
+			}
+		}
+		for (node* n = a->end; n; n = n->next) {
+			if (node_in_list(n, partition[i])) {
+				end = list_add(end, node_get(i));
+			}
+		}
+	}
+	nfa* m = nfa_init(a->dim, t, start, end);
+	for (int i = 0; i < t; i++) {
+		for (node* n = partition[i]; n; n = n->next) {
+			for (int symb = 0; symb < (1 << a->dim); symb++) {
+				for (int j = 0; j < t; j++) {
+					if (node_in_list(a->g->adj_list[n->q].symbols[symb].head, partition[j])) {
+						nfa_add(m, i, symb, j);
+					}
+				}
+			}
+		}
+	}
+	return m;
+}
+
+/// <summary>
+/// Composes an automaton for a sum of the right-hand-sides
+/// </summary>
+/// <param name="a">an automaton for y = a_1*x</param>
+/// <param name="b">an automaton for y = b_1*x</param>
+/// <returns>an automaton for y = (a_1+b_1)*x</returns>
 nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	nfa* u = a;
 	u = nfa_extend(u, 0);
@@ -408,13 +581,50 @@ nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	return u;
 }
 
+nfa* nfa_cut_leading_zeros(nfa *a) {
+	node* start = node_get(0);
+	nfa* zeros = nfa_init(a->dim, 1, start, start);
+	nfa_add(zeros, 0, 0, 0);
+	return left_quot(a, zeros);
+	//left_quot
+}
+
+/// <summary>
+/// returns an automaton for (y = 2*x /\ a(x)) if a is a unary automaton
+/// </summary>
+/// <param name="a"></param>
+/// <returns></returns>
+nfa* nfa_double(nfa* a) {
+	nfa* result = NULL;
+	if (a->dim == 1) {
+		node* start = node_get(0);
+		nfa* mul2 = nfa_init(2, 2, start, start);
+		nfa_add(mul2, 0, 0, 0);
+		nfa_add(mul2, 0, 1, 1);
+		nfa_add(mul2, 1, 2, 1);
+		nfa_add(mul2, 1, 3, 0);
+		nfa* a1 = nfa_extend(a, 0);
+		nfa* conj = nfa_intersect(mul2, a1);
+		nfa* semi_result = nfa_projection(conj, 0);
+		nfa_free(a1);
+		nfa_free(mul2);
+	}
+	return result;
+}
+
+/// <summary>
+/// automaton for y = a * x
+/// </summary>
+/// <param name="a">coefficinet</param>
+/// <returns></returns>
 nfa* nfa_linear_equals(int a) {
 	int k = 0;
-	for (int i = 0; (a >> i) > 0; i++, k++);
+	for (; (a >> k) > 0; k++);
 	nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
-	deg2[0] = nfa_read("equals.txt");
+	deg2[0] = nfa_read("equals.txt"); // x = y
 	for (int i = 1; i < k; i++) {
-		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]);
+		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
+		cout << deg2[i]->n << endl;
 	}
 
 	nfa* ans = NULL;
@@ -422,7 +632,7 @@ nfa* nfa_linear_equals(int a) {
 	for (int i = 0; (a >> i) > 0; i++) {
 		if (((a >> i) & 1) == 1) {
 			if (fl) {
-				ans = nfa_sum_equals(ans, deg2[i]);
+				ans = nfa_sum_equals(ans, deg2[i]); 
 			}
 			else {
 				ans = deg2[i];
@@ -430,7 +640,6 @@ nfa* nfa_linear_equals(int a) {
 			}
 		}
 	}
-
 	return ans;
 }
 
@@ -499,8 +708,7 @@ nfa* nfa_right_quot(nfa* a, nfa* b) {
 		a->end = node_get(i);
 		n = nfa_intersect(a, b);
 		s = 0;
-
-		//попадает ли в новое потенциальное конечное состояния хотя бы одно другое?
+		
 		
 		for (node* curr = n->start; curr; curr = curr->next) {
 			vis = (int*)calloc(a->n * b->n, sizeof(int));

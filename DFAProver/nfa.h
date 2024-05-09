@@ -37,6 +37,8 @@ nfa* nfa_complement(nfa* a);
 nfa* nfa_swap(nfa* n, int i, int j);
 
 nfa* nfa_linear_equals(int a);
+nfa* nfa_sum_equals(nfa* a, nfa* b);
+nfa* nfa_del_unrechable(nfa* a);
 
 nfa* nfa_sum_equals(nfa* a, nfa* b);
 
@@ -44,6 +46,13 @@ void nfa_dfs(nfa* a, int q, int n, int* vis);
 
 nfa* left_quot(nfa* a, nfa* b);
 
+nfa* right_quot(nfa* a, nfa* b);
+
+nfa* nfa_minimize(nfa* x);
+
+stack* infix_to_rpn(char* input);
+nfa* rpn_to_nfa(stack* rpn);
+char* substr(char* string, int start, int end);
 nfa* nfa_right_quot(nfa* a, nfa* b);
 
 nfa* nfa_to_dfa(nfa* a);

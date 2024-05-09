@@ -127,11 +127,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cli.cpp" />
     <ClCompile Include="data_struct.cpp" />
     <ClCompile Include="DFAProver.cpp" />
     <ClCompile Include="nfa.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cli.h" />
     <ClInclude Include="data_struct.h" />
     <ClInclude Include="nfa.h" />
   </ItemGroup>

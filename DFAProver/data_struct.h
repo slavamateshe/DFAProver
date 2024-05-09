@@ -5,11 +5,10 @@ typedef struct node {
     struct node* next;
 } node;
 
-typedef struct node_2 {
-    int* q;
-    int n;
-    struct node_2* next;
-};
+typedef struct node_str {
+    char* str;
+    struct node_str* next;
+} node_str;
 
 typedef struct list_of_nodes {
     node* head;
@@ -24,14 +23,25 @@ typedef struct graph {
     list_of_lists* adj_list;
 } graph;
 
+typedef struct stack {
+    node_str* top;
+    int size;
+} stack;
+
 node* node_get(int q);
 node_2* node_get2(int* q, int n);
 node* list_add(node* start, node* a);
 node_2* list_add2(node_2* start, node_2* a);
 void list_del(node* start, node* a);
+bool node_in_list(node* a, node* list);
 void list_free(node* n);
 
 graph* graph_init(int n, int dim);
 void graph_add_arc(graph* g, int q, int symb, int q_new);
 void graph_del_arc(graph* g, int q, int symb, int q_del);
 void graph_free(graph* g, int dim);
+
+stack* stack_init();
+void stack_push(stack* s, char* x);
+void stack_pop(stack* s);
+char* stack_top(stack* s);

@@ -1,6 +1,6 @@
 ﻿#include <iostream>
 #include <fstream>
-#include "nfa.h"
+#include "cli.h"
 
 using namespace std;
 
