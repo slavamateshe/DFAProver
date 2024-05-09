@@ -11,6 +11,14 @@ node* node_get(int q) {
 	return edge;
 }
 
+node_2* node_get2(int* q, int n) { //for node_2
+	node_2* edge = (node_2*)malloc(sizeof(node_2));
+	edge->q = q;
+	edge->n = n;
+	edge->next = NULL;
+	return edge;
+}
+
 node* list_add(node* start, node* a) {
 	if (!start) {
 		start = node_get(a->q);
@@ -26,6 +34,38 @@ node* list_add(node* start, node* a) {
 		if (!is_first) {
 			t = t->next;
 		}
+		n = n->next;
+		is_first = false;
+	}
+	t->next = a;
+	return start;
+}
+
+node_2* list_add2(node_2* start, node_2* a) { //for node_2
+	if (!start) {
+		start = node_get2(a->q, a->n);
+		return start;
+	}
+	node_2* n = start;
+	node_2* t = start;
+	int is_first = true;
+	int flag = 1;
+	while (n) {
+
+		if (start->n == a->n) {
+			for (int i = 0; i < a->n; i++) {
+				if (start->q[i] != a->q[i]) {
+					flag = 0;
+					break;
+				}
+			}
+			if (flag) return start;
+		}
+
+		if (!is_first) {
+			t = t->next;
+		}
+
 		n = n->next;
 		is_first = false;
 	}

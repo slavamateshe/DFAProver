@@ -4,7 +4,7 @@
 
 typedef struct nfa {
     int dim;
-    int n;
+    long long int n;
     graph* g;
     node* start;
     node* end;
@@ -44,4 +44,6 @@ void nfa_dfs(nfa* a, int q, int n, int* vis);
 
 nfa* left_quot(nfa* a, nfa* b);
 
-nfa* right_quot(nfa* a, nfa* b);
+nfa* nfa_right_quot(nfa* a, nfa* b);
+
+nfa* nfa_to_dfa(nfa* a);
