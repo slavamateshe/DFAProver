@@ -40,6 +40,38 @@ node* list_add(node* start, node* a) {
 	return start;
 }
 
+node_2* list_add2(node_2* start, node_2* a) { //for node_2
+	if (!start) {
+		start = node_get2(a->q, a->n);
+		return start;
+	}
+	node_2* n = start;
+	node_2* t = start;
+	int is_first = true;
+	int flag = 1;
+	while (n) {
+
+		if (start->n == a->n) {
+			for (int i = 0; i < a->n; i++) {
+				if (start->q[i] != a->q[i]) {
+					flag = 0;
+					break;
+				}
+			}
+			if (flag) return start;
+		}
+
+		if (!is_first) {
+			t = t->next;
+		}
+
+		n = n->next;
+		is_first = false;
+	}
+	t->next = a;
+	return start;
+}
+
 void list_del(node* start, node* a) {
 	node* n = start;
 	while (n) {

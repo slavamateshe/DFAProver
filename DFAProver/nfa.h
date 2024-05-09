@@ -4,7 +4,7 @@
 
 typedef struct nfa {
     int dim;
-    int n;
+    long long int n;
     graph* g;
     node* start;
     node* end;
@@ -53,3 +53,6 @@ nfa* nfa_minimize(nfa* x);
 stack* infix_to_rpn(char* input);
 nfa* rpn_to_nfa(stack* rpn);
 char* substr(char* string, int start, int end);
+nfa* nfa_right_quot(nfa* a, nfa* b);
+
+nfa* nfa_to_dfa(nfa* a);

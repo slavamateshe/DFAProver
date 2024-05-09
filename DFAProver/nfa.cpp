@@ -693,7 +693,7 @@ nfa* left_quot(nfa* a, nfa* b) {
 	return lq;
 }
 
-nfa* right_quot(nfa* a, nfa* b) {
+nfa* nfa_right_quot(nfa* a, nfa* b) {
 	int* vis = NULL;
 	int state_num, s;
 	node* initial_end = a->end;
@@ -714,9 +714,6 @@ nfa* right_quot(nfa* a, nfa* b) {
 			vis = (int*)calloc(a->n * b->n, sizeof(int));
 			nfa_dfs(n, curr->q, a->n, vis);
 
-			for (int j = 0; j < a->n * b->n; j++) cout << vis[j] << " ";
-			cout << endl << endl;
-
 			for (int j = 0; j < b->n; j++) {
 				state_num = j * a->n + i;
 				s += vis[state_num];
@@ -726,7 +723,6 @@ nfa* right_quot(nfa* a, nfa* b) {
 				free(vis);
 				break;
 			}
-
 			free(vis);
 		}
 		nfa_free(n);
@@ -734,4 +730,48 @@ nfa* right_quot(nfa* a, nfa* b) {
 	}
 	a->end = initial_end;
 	return rq;
+}
+
+int sum_array(int* a, int n) {
+	long int S = 0;
+	for (int i = 0; i < n; i++) S += a[i];
+	return S;
+}
+
+nfa* nfa_to_dfa(nfa* a) {
+	int start_num = 0;
+
+	for (node* curr = a->start; curr; curr = curr->next)
+		start_num += (1 << (curr->q));
+
+	node* start = node_get(start_num);
+	nfa* result = nfa_init(a->dim, 1 << a->n, start, NULL);
+	node* end = NULL;
+
+	for (node* curr = a->end; curr; curr = curr->next) {
+		for (int num = 0; num < result->n; ++num) {
+			if (num & (1 << (curr->q))) 
+				end = list_add(end, node_get(num));
+		}
+	}
+
+	result->end = end;
+	
+	int pos, trans, q;
+
+	for (int i = 0; i < result->n; i++) {
+		q = i;
+		for (int symb = 0; symb < (1 << a->dim); symb++) {
+			for (int j = q & 1; q; q >>= 1) {
+				trans = 0;
+				for (node* curr = a->g->adj_list[j].symbols[symb].head; curr; curr = curr->next) {
+					pos = (1 << (curr->q));
+					if (!(pos & trans)) trans += pos;
+				}
+				if (trans) nfa_add(result, i, symb, trans);
+			}
+		}
+	}
+
+	return result;
 }

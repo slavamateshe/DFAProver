@@ -4,18 +4,6 @@
 
 using namespace std;
 
-void test_mult_const(nfa* a, int t) {
-	int input[2] = { 0, 0 };
-	for (int i = 0; i < t; ++i) {
-		for (int j = 0; j < t; ++j) {
-			input[0] = i, input[1] = j;
-			if (nfa_check(a, input))
-				printf("(%d, %d) -> accept!!!!!!!!\n", i, j);
-			else 
-				printf("(%d, %d) -> reject\n", i, j);
-		}
-	}
-}
 
 void test_rpn() {
 	/// (($div2(x) & $div3(x)) | ~$div2(x))
