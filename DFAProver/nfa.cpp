@@ -302,6 +302,7 @@ node** new_partition(node** partition, nfa* a, int* t, bool* changed) {
 
 
 nfa* nfa_minimize(nfa* a) {
+	a = nfa_del_unrechable(a);
 	node** partition = (node**)malloc(2 * sizeof(node*));
 	partition[0] = a->end;
 	partition[1] = NULL;
@@ -335,6 +336,7 @@ nfa* nfa_minimize(nfa* a) {
 			}
 		}
 	}
+
 	nfa* m = nfa_init(a->dim, t, start, end);
 	for (int i = 0; i < t; i++) {
 		for (node* n = partition[i]; n; n = n->next) {
@@ -347,8 +349,7 @@ nfa* nfa_minimize(nfa* a) {
 			}
 		}
 	}
-	nfa* b = nfa_del_unrechable(m);
-	return b;
+	return m;
 }
 
 nfa* nfa_to_dfa(nfa* a) {
