@@ -345,8 +345,12 @@ nfa* nfa_minimize(nfa* a) {
 		for (node* n = partition[i]; n; n = n->next) {
 			for (int symb = 0; symb < (1 << a->dim); symb++) {
 				for (int j = 0; j < t; j++) {
+<<<<<<< HEAD
 					nd = a->g->adj_list[n->q].symbols[symb].head;
 					if (nd && node_in_list(nd, partition[j])) {
+=======
+					if (a->g->adj_list[n->q].symbols[symb].head && node_in_list(a->g->adj_list[n->q].symbols[symb].head, partition[j])) {
+>>>>>>> 745e94ccd2f072c56cc96fd08bf0c167a311eebd
 						nfa_add(m, i, symb, j);
 					}
 				}
