@@ -37,31 +37,9 @@ void test_rpn() {
 			cout << i << " reject" << endl;
 		}
 	}
-	cout << a->n << endl;
-
-	nfa* b = nfa_minimize(a);
-	for (int i = 0; i < 20; i++) {
-		int input[1] = { i };
-		if (nfa_check(b, input)) {
-			cout << i << " accept!!!!" << endl;
-		}
-		else {
-			cout << i << " reject" << endl;
-		}
-	}
-	cout << b->n;
 }
-
-//void text_prover() {
-//	int buffsize = 128;
-//	char* input = (char*)malloc(buffsize * sizeof(char));
-//	fgets(input, buffsize, stdin);
-//	if (substr())
-//
-//}
 
 int main()
 {  
-	test_rpn();
-	
+	cli();
 }
