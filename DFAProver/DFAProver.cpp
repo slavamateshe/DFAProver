@@ -1,7 +1,6 @@
 ﻿#include <iostream>
 #include <fstream>
 #include "nfa.h"
-
 using namespace std;
 
 
@@ -31,14 +30,12 @@ void test2(nfa* a, nfa* b, int n) {
 
 int main()
 {
-	nfa* a = nfa_linear_equals(3);
-	nfa* b = nfa_to_dfa(a);
-	int k = 0, m = 0;
-	for (int i = 0; i < 1000; i++) {
-		int c[1] = { i };
-		k = nfa_check(a, c);
-		m = nfa_check(b, c);
-		if (k != m) cout << -1;
-	}
+	nfa* a = nfa_init(1, 1, node_get(0), node_get(0));
+	nfa_add(a, 0, 0, 0);
 
+	nfa* b = nfa_init(1, 1, node_get(1), node_get(1));
+	nfa_add(a, 1, 1, 1);
+
+	nfa* c = nfa_union(a, b);
+	nfa_to_dot(c, "file1.dot");
 }
