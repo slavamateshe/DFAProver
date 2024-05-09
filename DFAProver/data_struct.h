@@ -29,9 +29,7 @@ typedef struct stack {
 } stack;
 
 node* node_get(int q);
-node_2* node_get2(int* q, int n);
 node* list_add(node* start, node* a);
-node_2* list_add2(node_2* start, node_2* a);
 void list_del(node* start, node* a);
 bool node_in_list(node* a, node* list);
 void list_free(node* n);
