@@ -434,7 +434,7 @@ nfa* nfa_intersect(nfa* n1, nfa* n2) {
 	}
 	new_n->end = new_end;
 
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 nfa* nfa_union(nfa* n1, nfa* n2) {
@@ -465,7 +465,7 @@ nfa* nfa_union(nfa* n1, nfa* n2) {
 	}
 	new_n->end = new_end;
 
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 nfa* nfa_complement(nfa* a) {
@@ -484,7 +484,7 @@ nfa* nfa_complement(nfa* a) {
 		}
 	}
 	b->end = end;
-	return nfa_minimize(nfa_to_dfa(b));
+	return b;
 }
 
 int nfa_is_dfa(nfa* n) {
@@ -528,7 +528,7 @@ nfa* nfa_projection(nfa* a, int n) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(b));
+	return b;
 }
 
 
@@ -553,8 +553,7 @@ nfa* nfa_extend(nfa* a, int n) {
 			}
 		}
 	}
-	nfa* c = nfa_to_dfa(b);
-	return nfa_minimize(c);
+	return b;
 }
 
 nfa* nfa_swap(nfa* n, int i, int j) {
@@ -579,7 +578,7 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 /// <summary>
@@ -697,7 +696,7 @@ void nfa_dfs(nfa* a, int q, int n, int* vis) {
 	}
 }
 
-nfa* left_quot(nfa* a, nfa* b) {
+nfa* nfa_left_quot(nfa* a, nfa* b) {
 	int* vis = NULL;
 	node* initial_start = a->start;
 	nfa* lq = nfa_copy(a);
@@ -730,7 +729,7 @@ nfa* left_quot(nfa* a, nfa* b) {
 		free(a->start);
 	}
 	a->start = initial_start;
-	return nfa_minimize(nfa_to_dfa(lq));
+	return lq;
 }
 
 nfa* nfa_right_quot(nfa* a, nfa* b) {
@@ -769,7 +768,7 @@ nfa* nfa_right_quot(nfa* a, nfa* b) {
 		free(a->end);
 	}
 	a->end = initial_end;
-	return nfa_minimize(nfa_to_dfa(rq));
+	return rq;
 }
 
 int sum_array(int* a, int n) {

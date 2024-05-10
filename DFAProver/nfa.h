@@ -44,15 +44,12 @@ nfa* nfa_sum_equals(nfa* a, nfa* b);
 
 void nfa_dfs(nfa* a, int q, int n, int* vis);
 
-nfa* left_quot(nfa* a, nfa* b);
-
-nfa* right_quot(nfa* a, nfa* b);
-
 nfa* nfa_minimize(nfa* x);
 
 stack* infix_to_rpn(char* input);
 nfa* rpn_to_nfa(stack* rpn);
 char* substr(char* string, int start, int end);
 nfa* nfa_right_quot(nfa* a, nfa* b);
+nfa* nfa_left_quot(nfa* a, nfa* b);
 
 nfa* nfa_to_dfa(nfa* a);
