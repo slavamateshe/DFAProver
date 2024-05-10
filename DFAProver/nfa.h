@@ -33,6 +33,7 @@ nfa* nfa_extend(nfa* a, int n);
 nfa* nfa_projection(nfa* a, int n);
 
 nfa* nfa_complement(nfa* a);
+nfa* nfa_complement2(nfa* a);
 
 nfa* nfa_swap(nfa* n, int i, int j);
 

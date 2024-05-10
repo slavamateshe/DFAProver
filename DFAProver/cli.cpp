@@ -205,6 +205,7 @@ void cli() {
 	char** names = (char**)malloc(0 * sizeof(char));
 	int k = 0;
 	while (true) {
+		cout << "IkbalProver: ";
 		int buffsize = 128;
 		char* input = (char*)malloc(buffsize * sizeof(char));
 		fgets(input, buffsize, stdin);

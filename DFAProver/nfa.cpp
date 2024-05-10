@@ -155,6 +155,23 @@ void nfa_to_dot(nfa* NFA, const char* s) {
 }
 
 int nfa_check(nfa* NFA, int* str) {
+	//when ||str|| == 0 the function doesnt work correctly
+	//we have to find all the reachable states from initial states
+	//and then compare them with the final states
+
+	int t = 0;
+	for (int i = 0; i < NFA->dim; i++) t |= str[i];
+	if (!t) {
+		for (node* start = NFA->start; start; start = start->next) {
+			for (node* curr = NFA->g->adj_list[start->q].symbols[0].head; curr; curr = curr->next) {
+				for (node* end = NFA->end; end; end = end->next) {
+					if (curr->q == end->q) return 1;
+				}
+			}
+		}
+		return 0;
+	}
+
 	node* current = NFA->start;
 	for (int k = 0; ; k++) {
 		int symb = 0;
@@ -302,7 +319,6 @@ node** new_partition(node** partition, nfa* a, int* t, bool* changed) {
 	return n_partition;
 }
 
-
 nfa* nfa_minimize(nfa* a) {
 	a = nfa_del_unrechable(a);
 	node** partition = (node**)malloc(2 * sizeof(node*));
@@ -345,13 +361,11 @@ nfa* nfa_minimize(nfa* a) {
 		for (node* n = partition[i]; n; n = n->next) {
 			for (int symb = 0; symb < (1 << a->dim); symb++) {
 				for (int j = 0; j < t; j++) {
-<<<<<<< HEAD
 					nd = a->g->adj_list[n->q].symbols[symb].head;
 					if (nd && node_in_list(nd, partition[j])) {
-=======
-					if (a->g->adj_list[n->q].symbols[symb].head && node_in_list(a->g->adj_list[n->q].symbols[symb].head, partition[j])) {
->>>>>>> 745e94ccd2f072c56cc96fd08bf0c167a311eebd
-						nfa_add(m, i, symb, j);
+						if (a->g->adj_list[n->q].symbols[symb].head && node_in_list(a->g->adj_list[n->q].symbols[symb].head, partition[j])) {
+							nfa_add(m, i, symb, j);
+						}
 					}
 				}
 			}
@@ -394,9 +408,7 @@ nfa* nfa_to_dfa(nfa* a) {
 			}
 			if (trans) nfa_add(result, i, symb, trans);
 		}
-
 	}
-
 	return result;
 }
 
@@ -413,7 +425,6 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 					for (node* nd2 = n2->g->adj_list[j].symbols[symb].head; nd2; nd2 = nd2->next) {
 						q2 = nd2->q * n1->n + nd1->q;
 						nfa_add(new_n, q1, symb, q2);
-						
 					}
 				}
 			}
@@ -422,7 +433,79 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 	return new_n;
 }
 
-nfa* nfa_intersect(nfa* n1, nfa* n2) {
+int nfa_incomplete_state(nfa* a) {
+	//in this context incomplete state - state that has at least one transition
+	//but doesnt have at least transitions for each symbols
+	//this function check if there are such states
+	node* curr = NULL;
+	int flag = 0;
+	for (int i = 0; i < a->n; i++) {
+		for (int symb = 0; symb < (1 << a->dim); symb++) {
+			curr = a->g->adj_list[i].symbols[symb].head;
+			if (curr) flag++;
+		}
+		if ((0 < flag) && (flag < (1 << a->dim))) return 1;
+	}
+	return 0;
+}
+
+nfa* add_miss_trans(nfa* a) {
+	int flag = 0;
+	node* curr = NULL;
+	nfa* b;
+
+	if (nfa_incomplete_state(a)) {
+		b = nfa_init(a->dim, a->n + 1, NULL, NULL);
+
+		for (int i = 0; i < a->n; i++) {
+			for (int symb = 0; symb < (1 << a->dim); symb++) {
+				for (node* curr = a->g->adj_list[i].symbols[symb].head; curr; curr = curr->next) {
+					nfa_add(b, i, symb, curr->q);
+				}
+			}
+		}
+
+		node* start = NULL;
+		node* end = NULL;
+
+		for (node* nd = a->start; nd; nd = nd->next)
+			start = list_add(start, node_get(nd->q));
+
+		for (node* nd = a->end; nd; nd = nd->next)
+			end = list_add(end, node_get(nd->q));
+
+		b->start = start;
+		b->end = end;
+	}
+	else b = nfa_copy(a);
+
+	for (int i = 0; i < b->n; i++) {
+		flag = 0;
+
+		for (int symb = 0; symb < (1 << b->dim); symb++) {
+			curr = b->g->adj_list[i].symbols[symb].head;
+			if (curr) {
+				flag = 1;
+				break;
+			}
+		}
+
+		for (int symb = 0; symb < (1 << b->dim); symb++) {
+			curr = b->g->adj_list[i].symbols[symb].head;
+			if (!curr) {
+				if (flag) nfa_add(b, i, symb, b->n - 1);
+				else nfa_add(b, i, symb, i);
+			}
+		}
+	}
+
+	return b;
+}
+
+nfa* nfa_intersect(nfa* a, nfa* b) {
+
+	nfa* n1 = add_miss_trans(a);
+	nfa* n2 = add_miss_trans(b);
 	nfa* new_n = nfa_cartesian(n1, n2);
 
 	int state_num = 0;
@@ -443,21 +526,31 @@ nfa* nfa_intersect(nfa* n1, nfa* n2) {
 		}
 	}
 	new_n->end = new_end;
-
-	return nfa_minimize(nfa_to_dfa(new_n));
+	nfa_free(n1);
+	nfa_free(n2);
+	return new_n;
 }
 
-nfa* nfa_union(nfa* n1, nfa* n2) {
+nfa* nfa_union(nfa* a, nfa* b) {
+
+	//first we need to check if there are states 
+	//from which there are no transitions acros all symbols
+	//add_miss_trans add missing transitions to given NFA
+	//same for intersection
+
+	nfa* n1 = add_miss_trans(a);
+	nfa* n2 = add_miss_trans(b);
 	nfa* new_n = nfa_cartesian(n1, n2);
 
 	node* new_start = NULL;
 	int state_num = 0;
 	for (node* start1 = n1->start; start1; start1 = start1->next) {
 		for (node* start2 = n2->start; start2; start2 = start2->next) {
-			state_num = start2->q * n1->n + start1->q;
+			state_num = start2->q * (n1->n) + start1->q;
 			new_start = list_add(new_start, node_get(state_num));
 		}
 	}
+
 	new_n->start = new_start;
 
 	node* new_end = NULL;
@@ -475,12 +568,36 @@ nfa* nfa_union(nfa* n1, nfa* n2) {
 	}
 	new_n->end = new_end;
 
-	return nfa_minimize(nfa_to_dfa(new_n));
+	nfa_free(n1);
+	nfa_free(n2);
+
+	return new_n;
+}
+
+nfa* nfa_complement2(nfa* a) { //my version (it works)
+	nfa* b = nfa_to_dfa(a);
+	node* new_end = NULL;
+	int flag;
+	for (int i = 0; i < b->n; i++) {
+		flag = 0;
+		for (node* curr = b->end; curr; curr = curr->next) {
+			if (i == curr->q) {
+				flag = 1;
+				break;
+			}
+		}
+		if (!flag) new_end = list_add(new_end, node_get(i));
+	}
+
+	list_free(b->end);
+	b->end = new_end;
+	return b;
 }
 
 nfa* nfa_complement(nfa* a) {
-	nfa* b = nfa_init(a->dim, a->n, a->start, NULL);
-	b->g = a->g;
+	nfa* b = nfa_copy(a);
+	list_free(b->end);
+
 	node* end = NULL;
 	for (int i = 0; i < b->n; i++) {
 		bool fl = true;
@@ -494,7 +611,7 @@ nfa* nfa_complement(nfa* a) {
 		}
 	}
 	b->end = end;
-	return nfa_minimize(nfa_to_dfa(b));
+	return b; 
 }
 
 int nfa_is_dfa(nfa* n) {
@@ -538,9 +655,8 @@ nfa* nfa_projection(nfa* a, int n) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(b));
+	return b;
 }
-
 
 nfa* nfa_extend(nfa* a, int n) {
 	node* start = NULL;
@@ -564,7 +680,7 @@ nfa* nfa_extend(nfa* a, int n) {
 		}
 	}
 	nfa* c = nfa_to_dfa(b);
-	return nfa_minimize(c);
+	return c;
 }
 
 nfa* nfa_swap(nfa* n, int i, int j) {
@@ -589,7 +705,7 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 /// <summary>
@@ -739,10 +855,10 @@ nfa* left_quot(nfa* a, nfa* b) {
 		free(a->start);
 	}
 	a->start = initial_start;
-	return nfa_minimize(nfa_to_dfa(lq));
+	return lq;
 }
 
-nfa* nfa_right_quot(nfa* a, nfa* b) {
+nfa* right_quot(nfa* a, nfa* b) {
 	int* vis = NULL;
 	int state_num, s;
 	node* initial_end = a->end;
@@ -778,5 +894,5 @@ nfa* nfa_right_quot(nfa* a, nfa* b) {
 		free(a->end);
 	}
 	a->end = initial_end;
-	return nfa_minimize(nfa_to_dfa(rq));
+	return rq;
 }
