@@ -253,12 +253,10 @@ nfa* nfa_del_unrechable(nfa* a) {
 }
 
 bool equal_states(node** partition, nfa* a, int q1, int q2, int t) {
-	node* nd = NULL;
 	for (int symb = 0; symb < (1 << a->dim); symb++) {
 		for (int i = 0; i < t; i++) {
-			nd = a->g->adj_list[q1].symbols[symb].head;
-			if (nd && (node_in_list(nd, partition[i]) ^
-				node_in_list(nd, partition[i]))) {
+			if (node_in_list(a->g->adj_list[q1].symbols[symb].head, partition[i]) ^
+				node_in_list(a->g->adj_list[q2].symbols[symb].head, partition[i])) {
 				return false;
 			}
 		}
@@ -340,17 +338,11 @@ nfa* nfa_minimize(nfa* a) {
 	}
 
 	nfa* m = nfa_init(a->dim, t, start, end);
-	node* nd = NULL;
 	for (int i = 0; i < t; i++) {
 		for (node* n = partition[i]; n; n = n->next) {
 			for (int symb = 0; symb < (1 << a->dim); symb++) {
 				for (int j = 0; j < t; j++) {
-<<<<<<< HEAD
-					nd = a->g->adj_list[n->q].symbols[symb].head;
-					if (nd && node_in_list(nd, partition[j])) {
-=======
 					if (a->g->adj_list[n->q].symbols[symb].head && node_in_list(a->g->adj_list[n->q].symbols[symb].head, partition[j])) {
->>>>>>> 745e94ccd2f072c56cc96fd08bf0c167a311eebd
 						nfa_add(m, i, symb, j);
 					}
 				}
@@ -379,22 +371,20 @@ nfa* nfa_to_dfa(nfa* a) {
 
 	result->end = end;
 
-	int pos, trans, t;
+	int pos, trans, q;
 
-	for (int i = 0; i < (1 << a->n); i++) {
+	for (int i = 0; i < result->n; i++) {
+		q = i;
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
-			trans = 0;
-			for (int j = 0; j < a->n; j++) {
-				t = (1 << j & i);
-				if (!t) continue;
+			for (int j = q & 1; q; q >>= 1) {
+				trans = 0;
 				for (node* curr = a->g->adj_list[j].symbols[symb].head; curr; curr = curr->next) {
 					pos = (1 << (curr->q));
 					if (!(pos & trans)) trans += pos;
 				}
+				if (trans) nfa_add(result, i, symb, trans);
 			}
-			if (trans) nfa_add(result, i, symb, trans);
 		}
-
 	}
 
 	return result;
@@ -634,8 +624,7 @@ nfa* nfa_cut_leading_zeros(nfa *a) {
 	node* start = node_get(0);
 	nfa* zeros = nfa_init(a->dim, 1, start, start);
 	nfa_add(zeros, 0, 0, 0);
-	return left_quot(a, zeros);
-	//left_quot
+	return nfa_left_quot(a, zeros);
 }
 
 /// <summary>
@@ -673,6 +662,7 @@ nfa* nfa_linear_equals(int a) {
 	deg2[0] = nfa_read("equals.txt"); // x = y
 	for (int i = 1; i < k; i++) {
 		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
+		cout << deg2[i]->n << endl;
 	}
 
 	nfa* ans = NULL;
@@ -777,7 +767,7 @@ nfa* nfa_right_quot(nfa* a, nfa* b) {
 		free(a->end);
 	}
 	a->end = initial_end;
-	return nfa_minimize(nfa_to_dfa(rq));
+	return rq;
 }
 
 int sum_array(int* a, int n) {

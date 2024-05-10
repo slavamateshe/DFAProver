@@ -58,6 +58,9 @@ void list_del(node* start, node* a) {
 }
 
 bool node_in_list(node* a, node* list) {
+	if (!a) {
+		return false;
+	}
 	for (node* n = list; n != NULL; n = n->next) {
 		if (a->q == n->q) {
 			return true;

@@ -51,5 +51,6 @@ nfa* rpn_to_nfa(stack* rpn);
 char* substr(char* string, int start, int end);
 nfa* nfa_right_quot(nfa* a, nfa* b);
 nfa* nfa_left_quot(nfa* a, nfa* b);
+nfa* nfa_cut_leading_zeros(nfa* a);
 
 nfa* nfa_to_dfa(nfa* a);
