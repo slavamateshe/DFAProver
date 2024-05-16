@@ -27,6 +27,7 @@ bool str_eq(char* a, const char* b) {
 
 int prec(char x) {
 	if (x == '~') return 3;
+	if (x == 'E') return 3;
 	if (x == '&') return 2;
 	if (x == '|') return 1;
 	return -1;
@@ -40,27 +41,26 @@ int prec(char x) {
 stack* infix_to_rpn(char* input) {
 	stack* operators = stack_init();
 	stack* rpn = stack_init();
-	int p = 0;
-	while (p < strlen(input)) {
-		char x = input[p];
+	char *p = input;
+	while (*p != '\n' && *p != '\0') {
 		char* token = (char*)malloc(2 * sizeof(char));
-		token[0] = x;
+		token[0] = *p;
 		token[1] = '\0';
-		p++;
-		if (x == ' ' || x == '\n') {
+		if (*p == ' ' || *p == '\n' || *p == 'x') {
+			p++;
 			continue;
 		}
-		if (x == '$') {
-			int t = p; // parse name
-			for (; input[t] != '('; t++);
-			token = substr(input, p, t - 1);
-			p = t + 1;
+		if (*p == '$') {
+			int t = 0; // parse name
+			while (*(p+t) != '(') ++t;
+			p++;
+			strncpy(token, p, t - 1);
+			token[t - 1] = '\0';
+			p += (t + 1);
 			stack_push(rpn, token);
 			// parse linear term until ')'
 			// start: ad hoc #1: just read (x)
-			while (input[t] != ')') ++t;
-			p = t + 1;
-			//   end: ad hoc #1
+			p++;
 		}
 		else if (prec(token[0]) >= 0) {
 			while (operators->size != 0 && (stack_top(operators)[0] != '(') && (prec(stack_top(operators)[0]) > prec(token[0]))) {
@@ -68,9 +68,11 @@ stack* infix_to_rpn(char* input) {
 				stack_pop(operators);
 			}
 			stack_push(operators, token);
+			p++;
 		}
 		else if (token[0] == '(') {
 			stack_push(operators, token);
+			p++;
 		}
 		else if (token[0] == ')') {
 			while (stack_top(operators)[0] != '(') {
@@ -78,6 +80,7 @@ stack* infix_to_rpn(char* input) {
 				stack_pop(operators);
 			}
 			stack_pop(operators);
+			p++;
 		}
 		else {
 			while (rpn->size != 0) {
@@ -102,11 +105,12 @@ stack* infix_to_rpn(char* input) {
 	return ans;
 }
 
-char* handle_name(char* input) {
-	int c = strlen(input);
-	char* a = (char*)realloc(input, (c + 5) * sizeof(char));
-	a[c] = '.', a[c + 1] = 't', a[c + 2] = 'x', a[c + 3] = 't', a[c + 4] = '\0';
-	return a;
+char* handle_name(char* a) {
+	int c = strlen(a);
+	char* b = (char*)malloc((c + 5) * sizeof(char));
+	strncpy(b, a, 4);
+	b[c] = '.', b[c + 1] = 't', b[c + 2] = 'x', b[c + 3] = 't', b[c + 4] = '\0';
+	return b;
 }
 
 bool oprt(char* x) {
@@ -127,27 +131,24 @@ nfa* rpn_to_nfa(stack* rpn) {
 			c++;
 			st = (nfa**)realloc(st, c * sizeof(nfa*));
 			st[c - 1] = nfa_read(handle_name(stack_top(rpn)));
-			stack_pop(rpn);
 		}
 		else if (token[0] == '&') {
 			nfa* a = nfa_intersect(st[c - 1], st[c - 2]);
 			st = (nfa**)realloc(st, (c - 1) * sizeof(nfa*));
 			st[c - 2] = a;
-			stack_pop(rpn);
 			c--;
 		}
 		else if (token[0] == '|') {
 			nfa* a = nfa_union(st[c - 1], st[c - 2]);
 			st = (nfa**)realloc(st, (c - 1) * sizeof(nfa*));
 			st[c - 2] = a;
-			stack_pop(rpn);
 			c--;
 		}
 		else if (token[0] == '~') {
 			nfa* a = nfa_complement(st[c - 1]);
 			st[c - 1] = a;
-			stack_pop(rpn);
 		}
+		stack_pop(rpn);
 	}
 	return st[0];
 }
@@ -166,16 +167,17 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 	int p = 0;
 	int t = p;
 	for (; input[t] != ' ' && input[t] != '\n'; t++);
-	if (str_eq(substr(input, p, t - 1), "def")) {
+	char* command = substr(input, p, t - 1);
+	if (str_eq(command, "def")) {
 		for (p = t + 1, t++; input[t] != ' ' && input[t] != '\n'; t++);
 		*names = (char**)realloc(*names, (*k + 1) * sizeof(char*));
-		*names[*k] = substr(input, p, t - 1);
+		*names[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))"
 		for (p = t + 1, t += 2; input[t] != '\"'; t++);
 		*nfas = (nfa**)realloc(*nfas, (*k + 1) * sizeof(nfa*));
-		*nfas[*k] = rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1)));
+		*nfas[*k] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
 		(*k)++;
 	}
-	else if (str_eq(substr(input, p, t - 1), "eval")) {
+	else if (str_eq(command, "eval")) {
 		p = t + 3;
 		t = p;
 		int id = -1;
@@ -187,13 +189,19 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 			}
 		}
 		for (p = t + 1; input[t] != ')'; t++);
-		int* argument = parse_argument(substr(input, p + 1, t - 1)); 
+		int* argument = parse_argument(substr(input, p, t - 1)); 
 		if (nfa_check(*nfas[id], argument)) {
 			cout << "True" << endl;
 		}
 		else {
 			cout << "False" << endl;
 		}
+	}
+	else if (str_eq(command, "help")) {
+		cout << "In progress..." << endl;
+	}
+	else {
+		cout << "Inavalid input. See \"help\" command" << endl;
 	}
 	return;
 }
@@ -207,6 +215,7 @@ void cli() {
 	while (true) {
 		cout << "IkbalProver: ";
 		int buffsize = 128;
+		cout << "IkbalProver: ";
 		char* input = (char*)malloc(buffsize * sizeof(char));
 		fgets(input, buffsize, stdin);
 		parse_input(input, &nfas, &names, &k);
