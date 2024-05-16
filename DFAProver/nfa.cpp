@@ -159,9 +159,7 @@ int nfa_check(nfa* NFA, int* str) {
 	//we have to find all the reachable states from initial states
 	//and then compare them with the final states
 
-	int t = 0;
-	for (int i = 0; i < NFA->dim; i++) t |= str[i];
-	if (!t) {
+	if (!NFA->dim) {
 		for (node* start = NFA->start; start; start = start->next) {
 			for (node* curr = NFA->g->adj_list[start->q].symbols[0].head; curr; curr = curr->next) {
 				for (node* end = NFA->end; end; end = end->next) {
@@ -389,19 +387,24 @@ nfa* nfa_to_dfa(nfa* a) {
 
 	int pos, trans, q;
 
-	for (int i = 0; i < result->n; i++) {
-		q = i;
+	for (int i = 1; i < result->n; i++) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
-			for (int j = q & 1; q; q >>= 1) {
+			for (int k = 0; k < a->n;k++) {
+				if (!((1 << k) & i)) continue;
 				trans = 0;
-				for (node* curr = a->g->adj_list[j].symbols[symb].head; curr; curr = curr->next) {
+				for (node* curr = a->g->adj_list[k].symbols[symb].head; curr; curr = curr->next) {
 					pos = (1 << (curr->q));
-					if (!(pos & trans)) trans += pos;
+					trans |= pos;
 				}
+				if (trans) nfa_add(result, i, symb, trans);
 			}
-			if (trans) nfa_add(result, i, symb, trans);
 		}
 	}
+	
+	for (node* curr = result->end; curr; curr = curr->next)
+		cout << curr->q << endl;
+
+
 	return result;
 }
 
