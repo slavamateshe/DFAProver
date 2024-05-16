@@ -91,6 +91,7 @@ graph* graph_init(int n, int dim) {
 	return g;
 }
 
+
 void graph_add_arc(graph* g, int q, int symb, int q_new) {
 	list_of_nodes* l = g->adj_list[q].symbols;
 	node* n = l[symb].head;

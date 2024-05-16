@@ -237,6 +237,7 @@ void cli() {
 	char** names = (char**)malloc(0 * sizeof(char));
 	int k = 0;
 	while (true) {
+		cout << "IkbalProver: ";
 		int buffsize = 128;
 		cout << "IkbalProver: ";
 		char* input = (char*)malloc(buffsize * sizeof(char));
