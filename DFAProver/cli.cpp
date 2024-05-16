@@ -197,6 +197,30 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 			cout << "False" << endl;
 		}
 	}
+	else if (str_eq(command, "eval_for")) {
+		p = t + 3;
+		t = p;
+		int id = -1;
+		for (t = p; input[t] != '('; t++);
+		for (int i = 0; i < *k; i++) {
+			if (str_eq(*names[i], substr(input, p, t - 1))) {
+				id = i;
+				break;
+			}
+		}
+		for (p = t + 1; input[t] != ')'; t++);
+		int* argument = parse_argument(substr(input, p, t - 1));
+		for (int i = 0; i < 20; i++) {
+			int input[1] = { i };
+			cout << i << ": ";
+			if (nfa_check(*nfas[id], input)) {
+				cout << "True" << endl;
+			}
+			else {
+				cout << "False" << endl;
+			}
+		}
+	}
 	else if (str_eq(command, "help")) {
 		cout << "In progress..." << endl;
 	}
