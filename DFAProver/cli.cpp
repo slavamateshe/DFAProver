@@ -171,7 +171,7 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 	if (str_eq(command, "def")) {
 		for (p = t + 1, t++; input[t] != ' ' && input[t] != '\n'; t++);
 		*names = (char**)realloc(*names, (*k + 1) * sizeof(char*));
-		*names[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))"
+		*names[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))" // def not_all "$div2(x) & ~$div2(x)"; def all "~$not_all(x)"
 		for (p = t + 1, t += 2; input[t] != '\"'; t++);
 		*nfas = (nfa**)realloc(*nfas, (*k + 1) * sizeof(nfa*));
 		*nfas[*k] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
@@ -213,7 +213,6 @@ void cli() {
 	char** names = (char**)malloc(0 * sizeof(char));
 	int k = 0;
 	while (true) {
-		cout << "IkbalProver: ";
 		int buffsize = 128;
 		cout << "IkbalProver: ";
 		char* input = (char*)malloc(buffsize * sizeof(char));
