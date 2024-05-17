@@ -389,21 +389,18 @@ nfa* nfa_to_dfa(nfa* a) {
 
 	for (int i = 1; i < result->n; i++) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
+			trans = 0;
 			for (int k = 0; k < a->n;k++) {
 				if (!((1 << k) & i)) continue;
-				trans = 0;
 				for (node* curr = a->g->adj_list[k].symbols[symb].head; curr; curr = curr->next) {
 					pos = (1 << (curr->q));
 					trans |= pos;
 				}
-				if (trans) nfa_add(result, i, symb, trans);
+				
 			}
+			if (trans) nfa_add(result, i, symb, trans);
 		}
 	}
-	
-	for (node* curr = result->end; curr; curr = curr->next)
-		cout << curr->q << endl;
-
 
 	return result;
 }
@@ -495,7 +492,7 @@ nfa* add_miss_trans(nfa* a) {
 		}
 	}
 
-	return b;
+	return nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_intersect(nfa* a, nfa* b) {
@@ -524,7 +521,7 @@ nfa* nfa_intersect(nfa* a, nfa* b) {
 	new_n->end = new_end;
 	nfa_free(n1);
 	nfa_free(n2);
-	return new_n;
+	return nfa_minimize(nfa_to_dfa(new_n));
 }
 
 nfa* nfa_union(nfa* a, nfa* b) {
@@ -567,7 +564,7 @@ nfa* nfa_union(nfa* a, nfa* b) {
 	nfa_free(n1);
 	nfa_free(n2);
 
-	return new_n;
+	return nfa_minimize(nfa_to_dfa(new_n));
 }
 
 nfa* nfa_complement2(nfa* a) { //my version (it works)
@@ -587,7 +584,7 @@ nfa* nfa_complement2(nfa* a) { //my version (it works)
 
 	list_free(b->end);
 	b->end = new_end;
-	return b;
+	return nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_complement(nfa* a) {
@@ -607,7 +604,7 @@ nfa* nfa_complement(nfa* a) {
 		}
 	}
 	b->end = end;
-	return b;
+	return nfa_minimize(nfa_to_dfa(b));
 }
 
 int nfa_is_dfa(nfa* n) {
@@ -642,6 +639,7 @@ nfa* nfa_projection(nfa* a, int n) {
 	for (node* x = a->end; x; x = x->next) {
 		end = list_add(end, node_get(x->q));
 	}
+
 	nfa* b = nfa_init(a->dim - 1, a->n, start, end);
 	for (int i = 0; i < a->n; i++) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
@@ -651,7 +649,7 @@ nfa* nfa_projection(nfa* a, int n) {
 			}
 		}
 	}
-	return b;
+	return nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_extend(nfa* a, int n) {
@@ -675,7 +673,7 @@ nfa* nfa_extend(nfa* a, int n) {
 			}
 		}
 	}
-	return b;
+	return nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_swap(nfa* n, int i, int j) {
@@ -700,7 +698,7 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 			}
 		}
 	}
-	return new_n;
+	return nfa_minimize(nfa_to_dfa(new_n));
 }
 
 /// <summary>
@@ -784,7 +782,6 @@ nfa* nfa_linear_equals(int a) {
 	deg2[0] = nfa_read("equals.txt"); // x = y
 	for (int i = 1; i < k; i++) {
 		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
-		cout << deg2[i]->n << endl;
 	}
 
 	nfa* ans = NULL;
@@ -850,7 +847,7 @@ nfa* nfa_left_quot(nfa* a, nfa* b) {
 		free(a->start);
 	}
 	a->start = initial_start;
-	return lq;
+	return nfa_minimize(nfa_to_dfa(lq));
 }
 
 nfa* right_quot(nfa* a, nfa* b) {
@@ -889,5 +886,5 @@ nfa* right_quot(nfa* a, nfa* b) {
 		free(a->end);
 	}
 	a->end = initial_end;
-	return rq;
+	return nfa_minimize(nfa_to_dfa(rq));
 }
