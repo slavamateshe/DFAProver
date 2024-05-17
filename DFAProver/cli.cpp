@@ -1,5 +1,11 @@
 #include <iostream>
 #include <fstream>
+#include <filesystem>
+#include <string>
+#include <stdio.h>
+#include <stdlib.h>
+#include <io.h>
+#include <time.h>
 #include "cli.h"
 
 using namespace std;
@@ -60,6 +66,7 @@ stack* infix_to_rpn(char* input) {
 			stack_push(rpn, token);
 			// parse linear term until ')'
 			// start: ad hoc #1: just read (x)
+			// !!!!!!!!!!!!!!!!! nfa_linear_equals// at least for a*x+b
 			p++;
 		}
 		else if (prec(token[0]) >= 0) {
@@ -170,20 +177,35 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 	char* command = substr(input, p, t - 1);
 	if (str_eq(command, "def")) {
 		for (p = t + 1, t++; input[t] != ' ' && input[t] != '\n'; t++);
-		*names = (char**)realloc(*names, (*k + 1) * sizeof(char*));
-		*names[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))"
-		// TODO: allow redefinitions
-		for (p = t + 1, t += 2; input[t] != '\"'; t++);
-		*nfas = (nfa**)realloc(*nfas, (*k + 1) * sizeof(nfa*));
-		*nfas[*k] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
-		(*k)++;
+		char* name = substr(input, p, t - 1);
+		int redef = -1;
+		for (int i = 0; i < *k; i++) {
+			if (str_eq(name, *names[i])) {
+				redef = i;
+				break;
+			}
+		}
+		if (redef == -1) {
+			*names = (char**)realloc(*names, (*k + 1) * sizeof(char*));
+			*names[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))"
+			for (p = t + 1, t += 2; input[t] != '\"'; t++);
+			*nfas = (nfa**)realloc(*nfas, (*k + 1) * sizeof(nfa*));
+			*nfas[*k] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
+			(*k)++;
+		}
+		else {
+			for (p = t + 1, t += 2; input[t] != '\"'; t++);
+			*nfas[redef] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
+		}
 	}
 	else if (str_eq(command, "eval")) {
 		p = t + 3;
 		t = p;
 		int id = -1;
 		for (t = p; input[t] != '('; t++);
+		cout << *k << endl;
 		for (int i = 0; i < *k; i++) {
+			cout << *names[i] << endl;
 			if (str_eq(*names[i], substr(input, p, t - 1))) {
 				id = i;
 				break;
@@ -234,10 +256,32 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 // def name "$div2(x) & ~$div3(x)"
 // eval "$name(33)"
 void cli() {
+	struct _finddata_t c_file;
+	intptr_t hFile;
+
 	nfa** nfas = (nfa**)malloc(0 * sizeof(nfa));
 	char** names = (char**)malloc(0 * sizeof(char));
-	//TODO: load predefined automata to nfas
-	int k = 0;
+	hFile = _findfirst("automata_lib\\*.txt", &c_file);
+	int i = 0;
+	do {
+		names = (char**)realloc(names, (i + 1) * sizeof(char*));
+		nfas = (nfa**)realloc(nfas, (i + 1) * sizeof(nfa*));
+		int j = 0;
+		for (; j < 260 && c_file.name[j] != '.'; j++);
+		names[i] = substr(c_file.name, 0, j - 1);
+
+		char* n = substr((char*)"automata_lib\\", 0, 13);
+		n = (char*)realloc(n, 13 + (j + 4) * (sizeof(char)));
+		for (int h = 13; h < 13 + j; h++) {
+			n[h] = c_file.name[h - 13];
+		}
+		n[13 + j] = '.', n[14 + j] = 't', n[15 + j] = '.x', n[16 + j] = 't', n[17 + j] = '\0';
+		nfas[i] = nfa_read(n);
+		i++;
+	} while (_findnext(hFile, &c_file) == 0);
+	_findclose(hFile);
+
+	int k = i;
 	while (true) {
 		cout << "IkbalProver: ";
 		int buffsize = 128;
