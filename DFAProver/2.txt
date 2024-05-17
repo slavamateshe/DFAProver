@@ -1,0 +1,7 @@
+digraph{
+node [shape = doublecircle] 1 3 
+node [shape = circle]
+1 -> 2 [label=0]
+2 -> 1 [label=0]
+3 -> 2 [label=0]
+}
