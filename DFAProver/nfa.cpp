@@ -524,7 +524,7 @@ nfa* nfa_intersect(nfa* a, nfa* b) {
 	new_n->end = new_end;
 	nfa_free(n1);
 	nfa_free(n2);
-	return new_n;
+	return nfa_minimize(nfa_to_dfa(new_n));
 }
 
 nfa* nfa_union(nfa* a, nfa* b) {
@@ -567,7 +567,7 @@ nfa* nfa_union(nfa* a, nfa* b) {
 	nfa_free(n1);
 	nfa_free(n2);
 
-	return new_n;
+	return (new_n);
 }
 
 nfa* nfa_complement2(nfa* a) { //my version (it works)
@@ -587,7 +587,7 @@ nfa* nfa_complement2(nfa* a) { //my version (it works)
 
 	list_free(b->end);
 	b->end = new_end;
-	return b;
+	return (b);
 }
 
 nfa* nfa_complement(nfa* a) {
@@ -607,7 +607,7 @@ nfa* nfa_complement(nfa* a) {
 		}
 	}
 	b->end = end;
-	return b;
+	return (b);
 }
 
 int nfa_is_dfa(nfa* n) {
@@ -675,7 +675,7 @@ nfa* nfa_extend(nfa* a, int n) {
 			}
 		}
 	}
-	return b;
+	return nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_swap(nfa* n, int i, int j) {
@@ -700,7 +700,7 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 			}
 		}
 	}
-	return new_n;
+	return nfa_minimize(nfa_to_dfa(new_n));
 }
 
 /// <summary>

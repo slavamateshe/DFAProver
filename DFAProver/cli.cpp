@@ -172,6 +172,7 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 		for (p = t + 1, t++; input[t] != ' ' && input[t] != '\n'; t++);
 		*names = (char**)realloc(*names, (*k + 1) * sizeof(char*));
 		*names[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))"
+		// TODO: allow redefinitions
 		for (p = t + 1, t += 2; input[t] != '\"'; t++);
 		*nfas = (nfa**)realloc(*nfas, (*k + 1) * sizeof(nfa*));
 		*nfas[*k] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
@@ -235,11 +236,11 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 void cli() {
 	nfa** nfas = (nfa**)malloc(0 * sizeof(nfa));
 	char** names = (char**)malloc(0 * sizeof(char));
+	//TODO: load predefined automata to nfas
 	int k = 0;
 	while (true) {
 		cout << "IkbalProver: ";
 		int buffsize = 128;
-		cout << "IkbalProver: ";
 		char* input = (char*)malloc(buffsize * sizeof(char));
 		fgets(input, buffsize, stdin);
 		parse_input(input, &nfas, &names, &k);
