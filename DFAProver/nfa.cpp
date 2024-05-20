@@ -567,10 +567,10 @@ nfa* nfa_union(nfa* a, nfa* b) {
 	nfa_free(n1);
 	nfa_free(n2);
 
-	return (new_n);
+	return new_n;
 }
 
-nfa* nfa_complement2(nfa* a) { //my version (it works)
+nfa* nfa_complement(nfa* a) { //my version (it works)
 	nfa* b = nfa_to_dfa(a);
 	node* new_end = NULL;
 	int flag;
@@ -587,28 +587,9 @@ nfa* nfa_complement2(nfa* a) { //my version (it works)
 
 	list_free(b->end);
 	b->end = new_end;
-	return (b);
+	return b;
 }
 
-nfa* nfa_complement(nfa* a) {
-	nfa* b = nfa_copy(a);
-	list_free(b->end);
-
-	node* end = NULL;
-	for (int i = 0; i < b->n; i++) {
-		bool fl = true;
-		for (node* nd = a->end; nd; nd = nd->next) {
-			if (i == nd->q) {
-				fl = false;
-			}
-		}
-		if (fl) {
-			end = list_add(end, node_get(i));
-		}
-	}
-	b->end = end;
-	return (b);
-}
 
 int nfa_is_dfa(nfa* n) {
 	node* nd_1;
@@ -713,34 +694,33 @@ nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	if (!a) {
 		return b;
 	}
-	nfa* u = a;
-	u = nfa_extend(u, 0);
-	u = nfa_extend(u, 1);
-	u = nfa_extend(u, 4);
-	u = nfa_swap(u, 2, 3);
+	nfa* u = nfa_copy(a);
+	u = nfa_minimize(nfa_to_dfa(nfa_extend(u, 1)));
+	u = nfa_minimize(nfa_to_dfa(nfa_extend(u, 3)));
+	u = nfa_minimize(nfa_to_dfa(nfa_extend(u, 3)));
 
-	nfa* v = b;
-	v = nfa_extend(v, 0);
-	v = nfa_extend(v, 2);
-	v = nfa_extend(v, 4);
-	v = nfa_swap(v, 1, 3);
+	nfa* v = nfa_copy(b);
+	v = nfa_minimize(nfa_to_dfa(nfa_extend(v, 1)));
+	v = nfa_minimize(nfa_to_dfa(nfa_extend(v, 1)));
+	v = nfa_minimize(nfa_to_dfa(nfa_extend(v, 4)));
 
 	nfa* w = nfa_read("sum.txt");
-	w = nfa_extend(w, 3);
-	w = nfa_extend(w, 4);
+	w = nfa_minimize(nfa_to_dfa(nfa_extend(w, 0)));
+	w = nfa_minimize(nfa_to_dfa(nfa_extend(w, 0)));
+	w = nfa_minimize(nfa_to_dfa(nfa_swap(w, 2, 4)));
 
 	nfa* eq = nfa_read("equals.txt");
-	eq = nfa_extend(eq, 1);
-	eq = nfa_extend(eq, 1);
-	eq = nfa_extend(eq, 1);
+	eq = nfa_minimize(nfa_to_dfa(nfa_extend(eq, 0)));
+	eq = nfa_minimize(nfa_to_dfa(nfa_extend(eq, 2)));
+	eq = nfa_minimize(nfa_to_dfa(nfa_extend(eq, 2)));
 
-	u = nfa_intersect(u, v);
-	u = nfa_intersect(u, w);
-	u = nfa_intersect(u, eq);
+	u = nfa_minimize(nfa_to_dfa(nfa_intersect(u, v)));
+	u = nfa_minimize(nfa_to_dfa(nfa_intersect(u, w)));
+	u = nfa_minimize(nfa_to_dfa(nfa_intersect(u, eq)));
 
-	u = nfa_projection(u, 0);
-	u = nfa_projection(u, 0);
-	u = nfa_projection(u, 0);
+	u = nfa_to_dfa(nfa_projection(u, 2)); // if i try to add nfa_to_dfa without minimization program fails
+	u = nfa_to_dfa(nfa_projection(u, 2)); // if i try to add nfa_to_dfa with minimization - wrong answer
+	u = nfa_to_dfa(nfa_projection(u, 1)); // both situations tested for linear_equals(2)
 
 	return u;
 }
@@ -750,29 +730,6 @@ nfa* nfa_cut_leading_zeros(nfa *a) {
 	nfa* zeros = nfa_init(a->dim, 1, start, start);
 	nfa_add(zeros, 0, 0, 0);
 	return nfa_left_quot(a, zeros);
-}
-
-/// <summary>
-/// returns an automaton for (y = 2*x /\ a(x)) if a is a unary automaton
-/// </summary>
-/// <param name="a"></param>
-/// <returns></returns>
-nfa* nfa_double(nfa* a) {
-	nfa* result = NULL;
-	if (a->dim == 1) {
-		node* start = node_get(0);
-		nfa* mul2 = nfa_init(2, 2, start, start);
-		nfa_add(mul2, 0, 0, 0);
-		nfa_add(mul2, 0, 1, 1);
-		nfa_add(mul2, 1, 2, 1);
-		nfa_add(mul2, 1, 3, 0);
-		nfa* a1 = nfa_extend(a, 0);
-		nfa* conj = nfa_intersect(mul2, a1);
-		nfa* semi_result = nfa_projection(conj, 0);
-		nfa_free(a1);
-		nfa_free(mul2);
-	}
-	return result;
 }
 
 /// <summary>
@@ -787,7 +744,6 @@ nfa* nfa_linear_equals(int a) {
 	deg2[0] = nfa_read("equals.txt"); // x = y
 	for (int i = 1; i < k; i++) {
 		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
-		cout << deg2[i]->n << endl;
 	}
 
 	nfa* ans = NULL;
@@ -795,7 +751,7 @@ nfa* nfa_linear_equals(int a) {
 	for (int i = 0; (a >> i) > 0; i++) {
 		if (((a >> i) & 1) == 1) {
 			if (fl) {
-				ans = nfa_sum_equals(ans, deg2[i]); 
+				ans = nfa_sum_equals(ans, deg2[i]);
 			}
 			else {
 				ans = deg2[i];
@@ -803,6 +759,7 @@ nfa* nfa_linear_equals(int a) {
 			}
 		}
 	}
+	ans = nfa_swap(ans, 1, 0);
 	return ans;
 }
 

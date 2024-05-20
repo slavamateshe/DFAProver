@@ -60,7 +60,7 @@ stack* infix_to_rpn(char* input) {
 			int t = 0; // parse name
 			while (*(p+t) != '(') ++t;
 			p++;
-			strncpy(token, p, t - 1);
+			//strncpy(token, p, t - 1);
 			token[t - 1] = '\0';
 			p += (t + 1);
 			stack_push(rpn, token);
@@ -115,7 +115,7 @@ stack* infix_to_rpn(char* input) {
 char* handle_name(char* a) {
 	int c = strlen(a);
 	char* b = (char*)malloc((c + 5) * sizeof(char));
-	strncpy(b, a, 4);
+	//strncpy(b, a, 4);
 	b[c] = '.', b[c + 1] = 't', b[c + 2] = 'x', b[c + 3] = 't', b[c + 4] = '\0';
 	return b;
 }
