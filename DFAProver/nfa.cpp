@@ -98,12 +98,12 @@ void nfa_write(nfa* NFA, const char* s) {
 	f << NFA->dim << endl;
 	f << NFA->n << endl;
 	for (node* curr = NFA->start; curr; curr = curr->next, k1++);
-	f << k1 << endl; 
+	f << k1 << endl;
 	for (node* curr = NFA->start; curr; curr = curr->next)
 		f << curr->q << endl;
 	for (node* curr = NFA->end; curr; curr = curr->next, k2++);
 	f << k2 << endl;
-	for (node* curr = NFA->end; curr;  curr = curr->next)
+	for (node* curr = NFA->end; curr; curr = curr->next)
 		f << curr->q << endl;
 
 	for (int i = 0; i < NFA->n; i++) {
@@ -133,7 +133,7 @@ void nfa_to_dot(nfa* NFA, const char* s) {
 
 	f << "node [shape = doublecircle] ";
 
-	for (node* curr = NFA->end; curr; curr = curr->next) 
+	for (node* curr = NFA->end; curr; curr = curr->next)
 		f << curr->q << " ";
 
 	f << endl;
@@ -434,7 +434,7 @@ nfa* nfa_to_dfa(nfa* a) {
 					pos = (1 << (curr->q));
 					trans |= pos;
 				}
-				
+
 			}
 			if (trans) nfa_add(result, i, symb, trans);
 		}
@@ -551,7 +551,7 @@ nfa* nfa_complement(nfa* a) { //my version (it works)
 				fl = 0;
 				break;
 			}
-			
+
 		}
 		if (fl) new_end = list_add(new_end, node_get(i));
 	}
@@ -799,8 +799,8 @@ nfa* right_quot(nfa* a, nfa* b) {
 		a->end = node_get(i);
 		n = nfa_intersect(a, b);
 		s = 0;
-		
-		
+
+
 		for (node* curr = n->start; curr; curr = curr->next) {
 			vis = (int*)calloc(a->n * b->n, sizeof(int));
 			nfa_dfs(n, curr->q, a->n, vis);

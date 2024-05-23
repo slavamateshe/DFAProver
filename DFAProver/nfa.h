@@ -41,6 +41,7 @@ nfa* nfa_double(nfa* a);
 nfa* power_of2(int k);
 
 nfa* nfa_linear_equals(int a);
+nfa* nfa_linear_equals(int *a, int n);
 nfa* nfa_sum_equals(nfa* a, nfa* b);
 nfa* nfa_del_unrechable(nfa* a);
 
