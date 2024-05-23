@@ -60,7 +60,7 @@ stack* infix_to_rpn(char* input) {
 			int t = 0; // parse name
 			while (*(p+t) != '(') ++t;
 			p++;
-			//strncpy(token, p, t - 1);
+			strncpy(token, p, t - 1);
 			token[t - 1] = '\0';
 			p += (t + 1);
 			stack_push(rpn, token);
@@ -115,7 +115,7 @@ stack* infix_to_rpn(char* input) {
 char* handle_name(char* a) {
 	int c = strlen(a);
 	char* b = (char*)malloc((c + 5) * sizeof(char));
-	//strncpy(b, a, 4);
+	strncpy(b, a, 4);
 	b[c] = '.', b[c + 1] = 't', b[c + 2] = 'x', b[c + 3] = 't', b[c + 4] = '\0';
 	return b;
 }
@@ -180,22 +180,22 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 		char* name = substr(input, p, t - 1);
 		int redef = -1;
 		for (int i = 0; i < *k; i++) {
-			if (str_eq(name, *names[i])) {
+			if (str_eq(name, (*names)[i])) {
 				redef = i;
 				break;
 			}
 		}
 		if (redef == -1) {
 			*names = (char**)realloc(*names, (*k + 1) * sizeof(char*));
-			*names[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))"
+			(*names)[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))"
 			for (p = t + 1, t += 2; input[t] != '\"'; t++);
 			*nfas = (nfa**)realloc(*nfas, (*k + 1) * sizeof(nfa*));
-			*nfas[*k] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
+			(*nfas)[*k] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
 			(*k)++;
 		}
 		else {
 			for (p = t + 1, t += 2; input[t] != '\"'; t++);
-			*nfas[redef] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
+			(*nfas)[redef] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
 		}
 	}
 	else if (str_eq(command, "eval")) {
@@ -203,17 +203,15 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 		t = p;
 		int id = -1;
 		for (t = p; input[t] != '('; t++);
-		cout << *k << endl;
 		for (int i = 0; i < *k; i++) {
-			cout << *names[i] << endl;
-			if (str_eq(*names[i], substr(input, p, t - 1))) {
+			if (str_eq((*names)[i], substr(input, p, t - 1))) {
 				id = i;
 				break;
 			}
 		}
 		for (p = t + 1; input[t] != ')'; t++);
 		int* argument = parse_argument(substr(input, p, t - 1)); 
-		if (nfa_check(*nfas[id], argument)) {
+		if (nfa_check((*nfas)[id], argument)) {
 			cout << "True" << endl;
 		}
 		else {
@@ -226,7 +224,7 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 		int id = -1;
 		for (t = p; input[t] != '('; t++);
 		for (int i = 0; i < *k; i++) {
-			if (str_eq(*names[i], substr(input, p, t - 1))) {
+			if (str_eq((*names)[i], substr(input, p, t - 1))) {
 				id = i;
 				break;
 			}
@@ -236,7 +234,7 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 		for (int i = 0; i < 20; i++) {
 			int input[1] = { i };
 			cout << i << ": ";
-			if (nfa_check(*nfas[id], input)) {
+			if (nfa_check((*nfas)[id], input)) {
 				cout << "True" << endl;
 			}
 			else {

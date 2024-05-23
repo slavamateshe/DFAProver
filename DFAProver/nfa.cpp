@@ -570,8 +570,8 @@ nfa* nfa_union(nfa* a, nfa* b) {
 	return new_n;
 }
 
-nfa* nfa_complement(nfa* a) { //my version (it works)
-	nfa* b = nfa_to_dfa(a);
+nfa* nfa_complement(nfa* b) { //my version (it works)
+	//nfa* b = nfa_to_dfa(a);
 	node* new_end = NULL;
 	int flag;
 	for (int i = 0; i < b->n; i++) {
