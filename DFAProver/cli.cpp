@@ -183,7 +183,7 @@ nfa* rpn_to_nfa(stack* rpn) {
 		}
 		else if (token[0] == 'A') {
 			nfa* a = st[c - 1];
-			int coord = token[1] - '0';
+			int coord = token[2] - '0';
 			a = nfa_complement(a);
 			a = nfa_projection(a, coord);
 			a = nfa_complement(a);

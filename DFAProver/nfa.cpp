@@ -154,20 +154,35 @@ void nfa_to_dot(nfa* NFA, const char* s) {
 	f.close();
 }
 
+int nfa_DFS(node* n, int* checked, nfa* NFA) {
+	checked[n->q] = 1;
+	for (node* t = NFA->end; t; t = t->next) {
+		if (n->q == t->q) return 1;
+	}
+	for (node* t = NFA->g->adj_list[n->q].symbols[0].head; t; t = t->next) {
+		if (checked[t->q] == 0) {
+			return nfa_DFS(t, checked, NFA);
+		}
+	}
+	return 0;
+}
+
 int nfa_check(nfa* NFA, int* str) {
 	//when ||str|| == 0 the function doesnt work correctly
 	//we have to find all the reachable states from initial states
 	//and then compare them with the final states
 
 	if (!NFA->dim) {
-		for (node* start = NFA->start; start; start = start->next) {
-			for (node* curr = NFA->g->adj_list[start->q].symbols[0].head; curr; curr = curr->next) {
-				for (node* end = NFA->end; end; end = end->next) {
-					if (curr->q == end->q) return 1;
+		int k = 0;
+		int* checked = (int*)calloc(NFA->n, sizeof(int));
+		for (node* n = NFA->start; n; n = n->next) {
+			if (checked[n->q] == 0) {
+				if (nfa_DFS(n, checked, NFA)) {
+					k = 1;
 				}
 			}
 		}
-		return 0;
+		return k == 1;
 	}
 
 	node* current = NFA->start;
@@ -559,7 +574,6 @@ nfa* nfa_complement(nfa* a) { //my version (it works)
 		if (fl) new_end = list_add(new_end, node_get(i));
 	}
 
-	list_free(b->end);
 	b->end = new_end;
 
 	return nfa_minimize(b);
