@@ -366,7 +366,48 @@ nfa* nfa_minimize(nfa* a) {
 	return m;
 }
 
+nfa* miss_trans(nfa* a)
+{
+	nfa* b = nfa_init(a->dim, a->n + 1, NULL, NULL);
+	node* curr = NULL;
+
+	for (int i = 0; i < a->n; ++i)
+	{
+		for (int symb = 0; symb < (1 << a->dim); ++symb)
+		{
+			curr = a->g->adj_list[i].symbols[symb].head;
+			if (curr) {
+				for (; curr; curr = curr->next)
+					nfa_add(b, i, symb, curr->q);
+			}
+			else nfa_add(b, i, symb, b->n - 1);
+		}
+	}
+
+	for (int symb = 0; symb < (1 << a->dim); ++symb)
+		nfa_add(b, b->n - 1, symb, b->n - 1);
+
+	node* start = NULL;
+	node* end = NULL;
+
+	for (node* nd = a->start; nd; nd = nd->next)
+		start = list_add(start, node_get(nd->q));
+
+	for (node* nd = a->end; nd; nd = nd->next)
+		end = list_add(end, node_get(nd->q));
+
+	b->start = start;
+	b->end = end;
+
+	return nfa_minimize(nfa_to_dfa(b));
+}
+
+nfa* nfa_min(nfa* a) {
+	return nfa_minimize(nfa_to_dfa(miss_trans(a)));
+}
+
 nfa* nfa_to_dfa(nfa* a) {
+
 	int start_num = 0;
 
 	for (node* curr = a->start; curr; curr = curr->next)
@@ -423,44 +464,10 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 			}
 		}
 	}
-	return new_n;
+	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
 }
 
-nfa* miss_trans(nfa* a)
-{
-	nfa* b = nfa_init(a->dim, a->n + 1, NULL, NULL);
-	node* curr = NULL;
 
-	for (int i = 0; i < a->n; ++i)
-	{
-		for (int symb = 0; symb < (1 << a->dim); ++symb)
-		{
-			curr = a->g->adj_list[i].symbols[symb].head;
-			if (curr) {
-				for (; curr; curr = curr->next)
-					nfa_add(b, i, symb, curr->q);
-			}
-			else nfa_add(b, i, symb, b->n - 1);
-		}
-	}
-
-	for (int symb = 0; symb < (1 << a->dim); ++symb)
-		nfa_add(b, b->n - 1, symb, b->n - 1);
-
-	node* start = NULL;
-	node* end = NULL;
-
-	for (node* nd = a->start; nd; nd = nd->next)
-		start = list_add(start, node_get(nd->q));
-
-	for (node* nd = a->end; nd; nd = nd->next)
-		end = list_add(end, node_get(nd->q));
-
-	b->start = start;
-	b->end = end;
-
-	return nfa_minimize(nfa_to_dfa(b));
-}
 
 nfa* nfa_intersect(nfa* a, nfa* b) {
 
@@ -561,26 +568,6 @@ nfa* nfa_complement(nfa* a) { //my version (it works)
 
 }
 
-//nfa* nfa_complement(nfa* a) {
-//	nfa* b = nfa_copy(a);
-//	list_free(b->end);
-//
-//	node* end = NULL;
-//	for (int i = 0; i < b->n; i++) {
-//		bool fl = true;
-//		for (node* nd = a->end; nd; nd = nd->next) {
-//			if (i == nd->q) {
-//				fl = false;
-//			}
-//		}
-//		if (fl) {
-//			end = list_add(end, node_get(i));
-//		}
-//	}
-//	b->end = end;
-//	return b;//nfa_minimize(nfa_to_dfa(b));
-//}
-
 int nfa_is_dfa(nfa* n) {
 	node* nd_1;
 	node* nd_2;
@@ -675,6 +662,7 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 	return nfa_minimize(nfa_to_dfa(new_n));
 }
 
+
 /// <summary>
 /// Composes an automaton for a sum of the right-hand-sides
 /// </summary>
@@ -750,27 +738,29 @@ nfa* nfa_double(nfa* a) {
 /// <param name="a">coefficinet</param>
 /// <returns></returns>
 nfa* nfa_linear_equals(int a) {
-	int k = 0;
-	for (; (a >> k) > 0; k++);
-	nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
-	deg2[0] = nfa_read("equals.txt"); // x = y
-	for (int i = 1; i < k; i++) {
-		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
+
+	if (!a) return NULL;
+
+	//int t, k = 0;
+
+	//for (; (a >> k) > 0; k++);
+
+	//nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
+
+	//deg2[0] = nfa_read("equals.txt"); // x = y
+
+	//for (int i = 1; i < k; i++) {
+	//	deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
+	//}
+	
+	nfa* ans = nfa_read("equals.txt");
+	nfa* unit = nfa_read("equals.txt");
+
+	for (int i = 1; i < a; ++i)
+	{
+		ans = nfa_sum_equals(unit, ans);
 	}
 
-	nfa* ans = NULL;
-	bool fl = false;
-	for (int i = 0; (a >> i) > 0; i++) {
-		if (((a >> i) & 1) == 1) {
-			if (fl) {
-				ans = nfa_sum_equals(ans, deg2[i]); 
-			}
-			else {
-				ans = deg2[i];
-				fl = true;
-			}
-		}
-	}
 	return ans;
 }
 
