@@ -34,6 +34,7 @@ bool str_eq(char* a, const char* b) {
 int prec(char x) {
 	if (x == '~') return 3;
 	if (x == 'E') return 3;
+	if (x == 'A') return 3;
 	if (x == '&') return 2;
 	if (x == '|') return 1;
 	return -1;
@@ -52,7 +53,7 @@ stack* infix_to_rpn(char* input) {
 		char* token = (char*)malloc(2 * sizeof(char));
 		token[0] = *p;
 		token[1] = '\0';
-		if (*p == ' ' || *p == '\n' || *p == 'x') {
+		if (*p == ' ' || *p == '\n') {
 			p++;
 			continue;
 		}
@@ -64,12 +65,21 @@ stack* infix_to_rpn(char* input) {
 			token[t - 1] = '\0';
 			p += (t + 1);
 			stack_push(rpn, token);
+			while (*p != ')') p++;
+			p++;
 			// parse linear term until ')'
 			// start: ad hoc #1: just read (x)
 			// !!!!!!!!!!!!!!!!! nfa_linear_equals// at least for a*x+b
-			p++;
 		}
 		else if (prec(token[0]) >= 0) {
+			if (token[0] == 'E' || token[0] == 'A') {
+				token = (char*)malloc(4 * sizeof(char));
+				token[0] = *p;
+				token[1] = *(p + 1);
+				token[2] = *(p + 2);
+				token[3] = '\0';
+				p += 2;
+			}
 			while (operators->size != 0 && (stack_top(operators)[0] != '(') && (prec(stack_top(operators)[0]) > prec(token[0]))) {
 				stack_push(rpn, stack_top(operators));
 				stack_pop(operators);
@@ -121,7 +131,7 @@ char* handle_name(char* a) {
 }
 
 bool oprt(char* x) {
-	if (x[0] == '~' || x[0] == '|' || x[0] == '&') return true;
+	if (x[0] == '~' || x[0] == '|' || x[0] == '&' || x[0] == 'E' || x[0] == 'A') return true;
 	return false;
 }
 
@@ -137,7 +147,17 @@ nfa* rpn_to_nfa(stack* rpn) {
 		if (!oprt(token)) {
 			c++;
 			st = (nfa**)realloc(st, c * sizeof(nfa*));
-			st[c - 1] = nfa_read(handle_name(stack_top(rpn)));
+			char* x = handle_name(stack_top(rpn));
+			char* y = (char*)malloc((strlen("automata_lib\\") + strlen(x) + 2) * sizeof(char));
+			y[strlen("automata_lib\\")] = '\0';
+			strncpy(y, "automata_lib\\", strlen("automata_lib\\"));
+			int l1 = strlen(y);
+			for (int i = l1; i < l1 + strlen(x); i++) {
+				y[i] = x[i - l1];
+			}
+			y[l1 + strlen(x)] = '\0';
+
+			st[c - 1] = nfa_read(y);
 		}
 		else if (token[0] == '&') {
 			nfa* a = nfa_intersect(st[c - 1], st[c - 2]);
@@ -155,18 +175,51 @@ nfa* rpn_to_nfa(stack* rpn) {
 			nfa* a = nfa_complement(st[c - 1]);
 			st[c - 1] = a;
 		}
+		else if (token[0] == 'E') {
+			nfa* a = st[c - 1];
+			int coord = token[2] - '0';
+			a = nfa_projection(a, coord);
+			st[c - 1] = a;
+		}
+		else if (token[0] == 'A') {
+			nfa* a = st[c - 1];
+			int coord = token[1] - '0';
+			a = nfa_complement(a);
+			a = nfa_projection(a, coord);
+			a = nfa_complement(a);
+			st[c - 1] = a;
+		}
 		stack_pop(rpn);
 	}
 	return st[0];
 }
 
 int* parse_argument(char* input) {
-	int* a = (int*)malloc(1 * sizeof(int));
-	int x = 0;
-	for (int i = 0; i < strlen(input); i++) {
-		x = x * 10 + (input[i] - '0');
+	if (strlen(input) == 0) {
+		int* a = (int*)malloc(0);
+		return a;
 	}
-	a[0] = x;
+	int k = 0;
+	for (int i = 0; i < strlen(input); i++) {
+		if (input[i] == ',') k++;
+	}
+	int* a = (int*)malloc((k + 1) * sizeof(int));
+
+	int p = 0;
+	for (int i = 0; i < k; i++) {
+		int x = 0;
+		for (int j = p; j < strlen(input) && input[j] != ','; j++, p++) {
+			x = x * 10 + (input[j] - '0');
+		}
+		a[i] = x;
+		p++;
+	}
+	int x = 0;
+	for (int j = p; j < strlen(input); j++) {
+		x = x * 10 + (input[j] - '0');
+	}
+	a[k] = x;
+
 	return a;
 }
 
@@ -253,6 +306,10 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 
 // def name "$div2(x) & ~$div3(x)"
 // eval "$name(33)"
+// def leq "Ex0 ($sum(x0,x1,x2))"
+// eval "$leq(2,3)"
+// def test "Ex0 ($div3(x0) & $div2(x0))"
+// eval "$test()"
 void cli() {
 	struct _finddata_t c_file;
 	intptr_t hFile;

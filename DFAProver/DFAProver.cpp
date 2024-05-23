@@ -27,5 +27,5 @@ void test() {
 
 int main(void)
 {
-	//cli();
+	cli();
 }

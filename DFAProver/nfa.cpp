@@ -211,6 +211,9 @@ int nfa_check(nfa* NFA, int* str) {
 nfa* nfa_del_unrechable(nfa* a) {
 	node* reachable = node_get(a->start->q);
 	node* new_states = node_get(a->start->q);
+	if (a->n == 31) {
+		nfa_to_dot(a, "123.txt");
+	}
 	while (new_states != NULL) {
 		node* temp = NULL;
 		for (node* n = new_states; n != NULL; n = n->next) {
@@ -411,7 +414,7 @@ nfa* nfa_to_dfa(nfa* a) {
 		start_num += (1 << (curr->q));
 
 	node* start = node_get(start_num);
-	nfa* result = nfa_init(a->dim, (1 << a->n) - 1, start, NULL);
+	nfa* result = nfa_init(a->dim, (1 << a->n), start, NULL);
 	node* end = NULL;
 
 	for (node* curr = a->end; curr; curr = curr->next) {
@@ -461,7 +464,7 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 			}
 		}
 	}
-	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 nfa* nfa_intersect(nfa* a, nfa* b) {
@@ -675,12 +678,12 @@ nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	v = nfa_extend(v, 1);
 	v = nfa_extend(v, 4);
 
-	nfa* w = nfa_read("sum.txt");
+	nfa* w = nfa_read("automata_lib\\sum.txt");
 	w = nfa_extend(w, 0);
 	w = nfa_extend(w, 0);
 	w = nfa_swap(w, 2, 4);
 
-	nfa* eq = nfa_read("equals.txt");
+	nfa* eq = nfa_read("automata_lib\\equals.txt");
 	eq = nfa_extend(eq, 0);
 	eq = nfa_extend(eq, 2);
 	eq = nfa_extend(eq, 2);
@@ -712,7 +715,7 @@ nfa* nfa_linear_equals(int a) {
 	int k = 0;
 	for (; (a >> k) > 0; k++);
 	nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
-	deg2[0] = nfa_read("equals.txt"); // x = y
+	deg2[0] = nfa_read("automata_lib\\equals.txt"); // x = y
 	for (int i = 1; i < k; i++) {
 		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
 	}
