@@ -398,15 +398,12 @@ nfa* miss_trans(nfa* a)
 
 	b->start = start;
 	b->end = end;
-
 	return nfa_minimize(nfa_to_dfa(b));
 }
 
-nfa* nfa_min(nfa* a) {
-	return nfa_minimize(nfa_to_dfa(miss_trans(a)));
-}
-
 nfa* nfa_to_dfa(nfa* a) {
+	if (nfa_is_dfa(a))
+		return nfa_copy(a);
 
 	int start_num = 0;
 
@@ -414,11 +411,11 @@ nfa* nfa_to_dfa(nfa* a) {
 		start_num += (1 << (curr->q));
 
 	node* start = node_get(start_num);
-	nfa* result = nfa_init(a->dim, 1 << a->n, start, NULL);
+	nfa* result = nfa_init(a->dim, (1 << a->n) - 1, start, NULL);
 	node* end = NULL;
 
 	for (node* curr = a->end; curr; curr = curr->next) {
-		for (int num = 0; num < result->n; ++num) {
+		for (int num = 1; num < result->n; ++num) {
 			if (num & (1 << (curr->q)))
 				end = list_add(end, node_get(num));
 		}
@@ -431,7 +428,7 @@ nfa* nfa_to_dfa(nfa* a) {
 	for (int i = 1; i < result->n; i++) {
 		for (int symb = 0; symb < (1 << a->dim); symb++) {
 			trans = 0;
-			for (int k = 0; k < a->n;k++) {
+			for (int k = 0; (i >> k); k++) {
 				if (!((1 << k) & i)) continue;
 				for (node* curr = a->g->adj_list[k].symbols[symb].head; curr; curr = curr->next) {
 					pos = (1 << (curr->q));
@@ -466,8 +463,6 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 	}
 	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
 }
-
-
 
 nfa* nfa_intersect(nfa* a, nfa* b) {
 
@@ -578,10 +573,7 @@ int nfa_is_dfa(nfa* n) {
 			nd_1 = n->g->adj_list[i].symbols[j].head;
 			if (nd_1) {
 				nd_2 = nd_1->next;
-				if (nd_2) {
-					cout << i << " " << j << endl;
-					return 0;
-				}
+				if (nd_2) return 0;
 			}
 		}
 	}
@@ -670,66 +662,45 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 /// <param name="b">an automaton for y = b_1*x</param>
 /// <returns>an automaton for y = (a_1+b_1)*x</returns>
 nfa* nfa_sum_equals(nfa* a, nfa* b) {
-	nfa* u = a;
-	u = nfa_extend(u, 0);
+	if (!a) {
+		return b;
+	}
+	nfa* u = nfa_minimize(nfa_to_dfa(a));
 	u = nfa_extend(u, 1);
-	u = nfa_extend(u, 4);
-	u = nfa_swap(u, 2, 3);
+	u = nfa_extend(u, 3);
+	u = nfa_extend(u, 3);
 
-	nfa* v = b;
-	v = nfa_extend(v, 0);
-	v = nfa_extend(v, 2);
+	nfa* v = nfa_minimize(nfa_to_dfa(b));
+	v = nfa_extend(v, 1);
+	v = nfa_extend(v, 1);
 	v = nfa_extend(v, 4);
-	v = nfa_swap(v, 1, 3);
 
 	nfa* w = nfa_read("sum.txt");
-	w = nfa_extend(w, 3);
-	w = nfa_extend(w, 4);
+	w = nfa_extend(w, 0);
+	w = nfa_extend(w, 0);
+	w = nfa_swap(w, 2, 4);
 
 	nfa* eq = nfa_read("equals.txt");
-	eq = nfa_extend(eq, 1);
-	eq = nfa_extend(eq, 1);
-	eq = nfa_extend(eq, 1);
+	eq = nfa_extend(eq, 0);
+	eq = nfa_extend(eq, 2);
+	eq = nfa_extend(eq, 2);
 
 	u = nfa_intersect(u, v);
 	u = nfa_intersect(u, w);
 	u = nfa_intersect(u, eq);
 
-	u = nfa_projection(u, 0);
-	u = nfa_projection(u, 0);
-	u = nfa_projection(u, 0);
+	u = nfa_projection(u, 2); // if i try to add nfa_to_dfa without minimization program fails
+	u = nfa_projection(u, 2); // if i try to add nfa_to_dfa with minimization - wrong answer
+	u = nfa_projection(u, 1); // both situations tested for linear_equals(2)
 
-	return u;
+	return nfa_minimize(nfa_to_dfa(u));
 }
 
-nfa* nfa_cut_leading_zeros(nfa *a) {
+nfa* nfa_cut_leading_zeros(nfa* a) {
 	node* start = node_get(0);
 	nfa* zeros = nfa_init(a->dim, 1, start, start);
 	nfa_add(zeros, 0, 0, 0);
 	return nfa_left_quot(a, zeros);
-}
-
-/// <summary>
-/// returns an automaton for (y = 2*x /\ a(x)) if a is a unary automaton
-/// </summary>
-/// <param name="a"></param>
-/// <returns></returns>
-nfa* nfa_double(nfa* a) {
-	nfa* result = NULL;
-	if (a->dim == 1) {
-		node* start = node_get(0);
-		nfa* mul2 = nfa_init(2, 2, start, start);
-		nfa_add(mul2, 0, 0, 0);
-		nfa_add(mul2, 0, 1, 1);
-		nfa_add(mul2, 1, 2, 1);
-		nfa_add(mul2, 1, 3, 0);
-		nfa* a1 = nfa_extend(a, 0);
-		nfa* conj = nfa_intersect(mul2, a1);
-		nfa* semi_result = nfa_projection(conj, 0);
-		nfa_free(a1);
-		nfa_free(mul2);
-	}
-	return result;
 }
 
 /// <summary>
@@ -738,29 +709,28 @@ nfa* nfa_double(nfa* a) {
 /// <param name="a">coefficinet</param>
 /// <returns></returns>
 nfa* nfa_linear_equals(int a) {
-
-	if (!a) return NULL;
-
-	//int t, k = 0;
-
-	//for (; (a >> k) > 0; k++);
-
-	//nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
-
-	//deg2[0] = nfa_read("equals.txt"); // x = y
-
-	//for (int i = 1; i < k; i++) {
-	//	deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
-	//}
-	
-	nfa* ans = nfa_read("equals.txt");
-	nfa* unit = nfa_read("equals.txt");
-
-	for (int i = 1; i < a; ++i)
-	{
-		ans = nfa_sum_equals(unit, ans);
+	int k = 0;
+	for (; (a >> k) > 0; k++);
+	nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
+	deg2[0] = nfa_read("equals.txt"); // x = y
+	for (int i = 1; i < k; i++) {
+		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
 	}
 
+	nfa* ans = NULL;
+	bool fl = false;
+	for (int i = 0; (a >> i) > 0; i++) {
+		if (((a >> i) & 1) == 1) {
+			if (fl) {
+				ans = nfa_sum_equals(ans, deg2[i]);
+			}
+			else {
+				ans = deg2[i];
+				fl = true;
+			}
+		}
+	}
+	ans = nfa_swap(ans, 1, 0);
 	return ans;
 }
 
@@ -811,7 +781,7 @@ nfa* nfa_left_quot(nfa* a, nfa* b) {
 		free(a->start);
 	}
 	a->start = initial_start;
-	return nfa_minimize(nfa_to_dfa(lq));
+	return lq;//nfa_minimize(nfa_to_dfa(lq));
 }
 
 nfa* right_quot(nfa* a, nfa* b) {
