@@ -9,23 +9,19 @@
 using namespace std;
 
 void test() {
-	nfa* a = nfa_linear_equals(4); 
+	nfa* a = nfa_linear_equals(7); 
 	cout << " " << a->n << "!!!!!!!!!!!!!!" << endl;
-	for (int i = 0; i < 20; i++) {
-		for (int j = 0; j < 20; j++) {
-			int input[2] = { i, j };
-			cout << i << " " << j << ": ";
-			if (nfa_check(a, input)) {
-				cout << "true " << endl;
-			}
-			else {
-				cout << "false" << endl;
-			}
-		}
+	nfa* b = nfa_projection(a, 0);
+	nfa* c = nfa_by_word("101");
+	for (int i = 0; i < 100; i++) {
+		int input[1] = {i};
+		if (nfa_check(b, input)) 
+			cout << i << " ";
 	}
 }
 
 int main(void)
 {
+	test();
 	//cli();
 }

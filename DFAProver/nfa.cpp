@@ -398,7 +398,7 @@ nfa* miss_trans(nfa* a)
 
 	b->start = start;
 	b->end = end;
-	return nfa_minimize(nfa_to_dfa(b));
+	return b;//nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_to_dfa(nfa* a) {
@@ -411,7 +411,7 @@ nfa* nfa_to_dfa(nfa* a) {
 		start_num += (1 << (curr->q));
 
 	node* start = node_get(start_num);
-	nfa* result = nfa_init(a->dim, (1 << a->n) - 1, start, NULL);
+	nfa* result = nfa_init(a->dim, 1 << a->n, start, NULL);
 	node* end = NULL;
 
 	for (node* curr = a->end; curr; curr = curr->next) {
@@ -490,7 +490,15 @@ nfa* nfa_intersect(nfa* a, nfa* b) {
 	new_n->end = new_end;
 	nfa_free(n1);
 	nfa_free(n2);
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
+}
+
+nfa* nfa_intersect_minimal(nfa* a, nfa* b) {
+	nfa* result = nfa_intersect(a, b);
+	nfa* temp = nfa_to_dfa(result);
+	nfa_free(result);
+	result = nfa_minimize(temp), nfa_free(temp);
+	return result;
 }
 
 nfa* nfa_union(nfa* a, nfa* b) {
@@ -533,19 +541,21 @@ nfa* nfa_union(nfa* a, nfa* b) {
 	nfa_free(n1);
 	nfa_free(n2);
 
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;// nfa_minimize(nfa_to_dfa(new_n));
 }
 
 nfa* nfa_complement(nfa* a) { //my version (it works)
 	nfa* c = miss_trans(a);
 	nfa* b = nfa_to_dfa(c);
+	nfa_free(c);
+	c = nfa_minimize(b);
 	int fl;
 	node* new_end = NULL;
 
-	for (int i = 0; i < b->n; ++i)
+	for (int i = 0; i < c->n; ++i)
 	{
 		fl = 1;
-		for (node* end = b->end; end; end = end->next)
+		for (node* end = c->end; end; end = end->next)
 		{
 			if (i == end->q) {
 				fl = 0;
@@ -556,10 +566,10 @@ nfa* nfa_complement(nfa* a) { //my version (it works)
 		if (fl) new_end = list_add(new_end, node_get(i));
 	}
 
-	list_free(b->end);
-	b->end = new_end;
+	list_free(c->end);
+	c->end = new_end;
 
-	return nfa_minimize(b);
+	return c;
 
 }
 
@@ -602,7 +612,7 @@ nfa* nfa_projection(nfa* a, int n) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(b));
+	return b;//nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_extend(nfa* a, int n) {
@@ -626,7 +636,7 @@ nfa* nfa_extend(nfa* a, int n) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(b));
+	return b;//nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_swap(nfa* n, int i, int j) {
@@ -651,7 +661,7 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;// nfa_minimize(nfa_to_dfa(new_n));
 }
 
 
@@ -665,12 +675,15 @@ nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	if (!a) {
 		return b;
 	}
-	nfa* u = nfa_minimize(nfa_to_dfa(a));
+	nfa* temp = nfa_to_dfa(a);
+	nfa* u = nfa_minimize(temp);
 	u = nfa_extend(u, 1);
 	u = nfa_extend(u, 3);
 	u = nfa_extend(u, 3);
 
-	nfa* v = nfa_minimize(nfa_to_dfa(b));
+	nfa_free(temp);
+	temp = nfa_to_dfa(b);
+	nfa* v = nfa_minimize(temp);
 	v = nfa_extend(v, 1);
 	v = nfa_extend(v, 1);
 	v = nfa_extend(v, 4);
@@ -685,15 +698,18 @@ nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	eq = nfa_extend(eq, 2);
 	eq = nfa_extend(eq, 2);
 
-	u = nfa_intersect(u, v);
-	u = nfa_intersect(u, w);
-	u = nfa_intersect(u, eq);
+	u = nfa_intersect_minimal(u, v);
+	u = nfa_intersect_minimal(u, w);
+	u = nfa_intersect_minimal(u, eq);
 
 	u = nfa_projection(u, 2); // if i try to add nfa_to_dfa without minimization program fails
 	u = nfa_projection(u, 2); // if i try to add nfa_to_dfa with minimization - wrong answer
 	u = nfa_projection(u, 1); // both situations tested for linear_equals(2)
 
-	return nfa_minimize(nfa_to_dfa(u));
+	nfa_free(temp), nfa_free(v), nfa_free(w), nfa_free(eq);
+	temp = nfa_to_dfa(u), nfa_free(u);
+	u = nfa_minimize(temp), nfa_free(temp);
+	return u;
 }
 
 nfa* nfa_cut_leading_zeros(nfa* a) {
@@ -820,5 +836,6 @@ nfa* right_quot(nfa* a, nfa* b) {
 		free(a->end);
 	}
 	a->end = initial_end;
-	return nfa_minimize(nfa_to_dfa(rq));
+	return rq;//nfa_minimize(nfa_to_dfa(rq));
 }
+

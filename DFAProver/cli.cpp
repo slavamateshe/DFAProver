@@ -288,3 +288,131 @@ void cli() {
 		parse_input(input, &nfas, &names, &k);
 	}
 }
+
+nfa* nfa_by_word(const char* word, int size)
+{
+	int symb;
+	nfa* a = nfa_init(1, size + 1, node_get(0), node_get(size));
+
+	for (int i = 0; i < size; ++i)
+	{
+		symb = (int)(word[size - i - 1] - '0');
+		nfa_add(a, i, symb, i + 1);
+	}
+	return a;
+}
+
+void nfa_closure(nfa* a) //a+
+{
+	node* curr = NULL;
+	for (node* end = a->end; end; end = end->next)
+	{
+		for (int symb = 0; symb < (1 << a->dim); ++symb)
+		{
+			for (node* curr = a->g->adj_list[0].symbols[symb].head; curr; curr = curr->next)
+			{
+				nfa_add(a, end->q, symb, curr->q);
+			}
+		}
+	}
+}
+
+nfa* hr_lang(const char* input)
+{
+	int len = strlen(input), size = 0, k = 0;
+	char* str = NULL;
+	nfa* curr = NULL;
+	nfa** nfas = NULL;
+	stack* s = stack_init();
+
+	char* symb1 = (char*)malloc(1); //(
+	char* symb2 = (char*)malloc(1); //|
+
+	symb1[0] = '(';
+	symb2[0] = '|';
+
+	if (input[0] != '(')
+	{
+		cout << "Invalid input" << endl;
+		return NULL;
+	}
+
+	for (int i = 0; i < len; ++i)
+	{
+
+		switch (input[i])
+		{
+		case '(':
+			stack_push(s, symb1);
+			break;
+
+		case ')':
+			if (stack_is_empty(s))
+			{
+				cout << "Invalid input" << endl;
+				return NULL;
+			}
+
+			if (s->top->str[0] == '(')
+			{
+				if (!curr)
+				{
+					curr = nfa_by_word(str, size);
+					free(str); str = NULL;
+					size = 0;
+				}
+			}
+			else
+			{
+				curr = nfa_union(curr, nfas[k - 1]);
+
+				while (s->top->str[0] != '(' && !stack_is_empty(s))
+					stack_pop(s);
+				if (stack_is_empty(s))
+				{
+					cout << "Invalid input" << endl;
+					return NULL;
+				}
+			}
+			stack_pop(s);
+			break;
+
+		case '|':
+			nfas = (nfa**)realloc(nfas, (k + 1) * sizeof(nfa*));
+			nfas[k] = curr;
+			curr = NULL;
+			k++;
+			stack_push(s, symb2);
+			break;
+
+		case '+':
+			nfa_closure(curr);
+			break;
+
+		case ' ':
+			break;
+
+		default:
+			if (!str)
+				str = (char*)malloc(1);
+			else
+				str = (char*)realloc(str, size + 1);
+			str[size] = input[i];
+			size++;
+			break;
+		}
+	}
+
+	if (!stack_is_empty(s))
+	{
+		cout << "Invalid input" << endl;
+		return NULL;
+	}
+
+	else {
+		for (int i = 0; i < k; ++i)
+			curr = nfa_union(nfas[i], curr);
+	}
+
+	return curr;
+}

@@ -187,3 +187,8 @@ void stack_pop(stack* s) {
 char* stack_top(stack* s) {
 	return s->top->str;
 }
+
+int stack_is_empty(stack* s)
+{
+	return s->size == 0;
+}
