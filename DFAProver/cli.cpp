@@ -242,6 +242,7 @@ nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k) {
 			int coord = token[2] - '0';
 			a = nfa_complement(a);
 			a = nfa_projection(a, coord);
+			nfa_to_dot(a, "123.txt");
 			a = nfa_complement(a);
 			st[c - 1] = a;
 		}
@@ -380,6 +381,8 @@ int parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 // def leq "Ex0 ($sum(x0,x1,x2))"
 // eval "$leq(2,3)"
 // def test "Ax0 ($div3(x0) & $div2(x0))"
+// eval "$test()"
+// def test "Ax0 ($div2(x0) & ~$div2(x0))"
 // eval "$test()"
 
 void cli() {

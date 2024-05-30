@@ -417,7 +417,7 @@ nfa* miss_trans(nfa* a)
 
 	b->start = start;
 	b->end = end;
-	return nfa_minimize(nfa_to_dfa(b));
+	return b; // nfa_minimize(nfa_to_dfa(b)); idk is it must have
 }
 
 nfa* nfa_to_dfa(nfa* a) {
@@ -555,7 +555,9 @@ nfa* nfa_union(nfa* a, nfa* b) {
 
 nfa* nfa_complement(nfa* a) { //my version (it works)
     nfa* c = miss_trans(a);
-	nfa* b = nfa_to_dfa(c);
+	nfa_to_dot(c, "123.txt");
+	nfa* b = nfa_minimize(nfa_to_dfa(c));
+	nfa_to_dot(b, "456.txt");
 	int fl;
 	node* new_end = NULL;
 
