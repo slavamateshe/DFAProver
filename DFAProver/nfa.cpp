@@ -160,8 +160,8 @@ int nfa_DFS(node* n, int* checked, nfa* NFA) {
 		if (n->q == t->q) return 1;
 	}
 	for (node* t = NFA->g->adj_list[n->q].symbols[0].head; t; t = t->next) {
-		if (checked[t->q] == 0) {
-			return nfa_DFS(t, checked, NFA);
+		if (checked[t->q] == 0 && nfa_DFS(t, checked, NFA)) {
+			return 1;
 		}
 	}
 	return 0;
@@ -173,22 +173,15 @@ int nfa_check(nfa* NFA, int* str) {
 	//and then compare them with the final states
 
 	if (NFA->dim == 0) {
-		/*int k = 0;
+		int k = 0;
 		int* checked = (int*)calloc(NFA->n, sizeof(int));
 		for (node* n = NFA->start; n; n = n->next) {
 			if (checked[n->q] == 0) {
 				if (nfa_DFS(n, checked, NFA)) {
-					k = 1;
-				}
-			}
-		}
-		return k == 1;*/
-		for (node* n = NFA->start; n; n = n->next) {
-			for (node* t = NFA->start; t; t = t->next) {
-				if (t->q == n->q) {
 					return 1;
 				}
 			}
+			checked = (int*)calloc(NFA->n, sizeof(int));
 		}
 		return 0;
 	}
@@ -514,9 +507,7 @@ nfa* nfa_intersect(nfa* a, nfa* b) {
 		}
 	}
 	new_n->end = new_end;
-	nfa_free(n1);
-	nfa_free(n2);
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 nfa* nfa_union(nfa* a, nfa* b) {
@@ -559,11 +550,11 @@ nfa* nfa_union(nfa* a, nfa* b) {
 	nfa_free(n1);
 	nfa_free(n2);
 
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 nfa* nfa_complement(nfa* a) { //my version (it works)
-	nfa* c = miss_trans(a);
+    nfa* c = miss_trans(a);
 	nfa* b = nfa_to_dfa(c);
 	int fl;
 	node* new_end = NULL;
@@ -627,7 +618,7 @@ nfa* nfa_projection(nfa* a, int n) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(b));
+	return b;
 }
 
 nfa* nfa_extend(nfa* a, int n) {
@@ -651,7 +642,7 @@ nfa* nfa_extend(nfa* a, int n) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(b));
+	return b;
 }
 
 nfa* nfa_swap(nfa* n, int i, int j) {
@@ -676,7 +667,7 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 			}
 		}
 	}
-	return nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 

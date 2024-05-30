@@ -197,7 +197,7 @@ nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k) {
 		}
 		else if (token[0] == '&') {
 			if (c <= 1) {
-				cout << "IkbalProver: something wrong with formula";
+				cout << "IkbalProver: something wrong with formula" << endl;
 				return NULL;
 			}
 			nfa* a = nfa_intersect(st[c - 2], st[c - 1]);
@@ -207,7 +207,7 @@ nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k) {
 		}
 		else if (token[0] == '|') {
 			if (c <= 1) {
-				cout << "IkbalProver: something wrong with formula";
+				cout << "IkbalProver: something wrong with formula" << endl;
 				return NULL;
 			}
 			nfa* a = nfa_union(st[c - 1], st[c - 2]);
@@ -217,7 +217,7 @@ nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k) {
 		}
 		else if (token[0] == '~') {
 			if (c <= 0) {
-				cout << "IkbalProver: something wrong with formula";
+				cout << "IkbalProver: something wrong with formula" << endl;
 				return NULL;
 			}
 			nfa* a = nfa_complement(st[c - 1]);
@@ -225,7 +225,7 @@ nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k) {
 		}
 		else if (token[0] == 'E') {
 			if (c <= 0) {
-				cout << "IkbalProver: something wrong with formula";
+				cout << "IkbalProver: something wrong with formula" << endl;
 				return NULL;
 			}
 			nfa* a = st[c - 1];
@@ -235,7 +235,7 @@ nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k) {
 		}
 		else if (token[0] == 'A') {
 			if (c <= 0) {
-				cout << "IkbalProver: something wrong with formula";
+				cout << "IkbalProver: something wrong with formula" << endl;
 				return NULL;
 			}
 			nfa* a = st[c - 1];
@@ -248,7 +248,7 @@ nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k) {
 		stack_pop(rpn);
 	}
 	if (c != 1) {
-		cout << "IkbalProver: something wrong with formula";
+		cout << "IkbalProver: something wrong with formula" << endl;
 		return NULL;
 	}
 	return st[0];
@@ -379,8 +379,9 @@ int parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 
 // def leq "Ex0 ($sum(x0,x1,x2))"
 // eval "$leq(2,3)"
-// def test "Ex0 ($div3(x0) & $div2(x0))"
+// def test "Ax0 ($div3(x0) & $div2(x0))"
 // eval "$test()"
+
 void cli() {
 	struct _finddata_t c_file;
 	intptr_t hFile;
