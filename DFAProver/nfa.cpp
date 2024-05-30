@@ -172,8 +172,8 @@ int nfa_check(nfa* NFA, int* str) {
 	//we have to find all the reachable states from initial states
 	//and then compare them with the final states
 
-	if (!NFA->dim) {
-		int k = 0;
+	if (NFA->dim == 0) {
+		/*int k = 0;
 		int* checked = (int*)calloc(NFA->n, sizeof(int));
 		for (node* n = NFA->start; n; n = n->next) {
 			if (checked[n->q] == 0) {
@@ -182,7 +182,15 @@ int nfa_check(nfa* NFA, int* str) {
 				}
 			}
 		}
-		return k == 1;
+		return k == 1;*/
+		for (node* n = NFA->start; n; n = n->next) {
+			for (node* t = NFA->start; t; t = t->next) {
+				if (t->q == n->q) {
+					return 1;
+				}
+			}
+		}
+		return 0;
 	}
 
 	node* current = NFA->start;

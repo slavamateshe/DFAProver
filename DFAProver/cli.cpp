@@ -1,14 +1,8 @@
-#include <iostream>
-#include <fstream>
-#include <filesystem>
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <io.h>
-#include <time.h>
 #include "cli.h"
 
 using namespace std;
+
+const char* automata_folder = "automata_lib\\";
 
 char* substr(char* string, int start, int end) {
 	char* sub = (char*)malloc((end - start + 2) * sizeof(char));
@@ -17,6 +11,41 @@ char* substr(char* string, int start, int end) {
 	}
 	sub[end - start + 1] = '\0';
 	return sub;
+}
+
+char* int_to_str(int x) {
+	if (x == 0) {
+		char* a = (char*)malloc(2 * sizeof(char));
+		return a;
+	}
+	int k = 0;
+	int t = x;
+	while (x != 0) {
+		k++;
+		x /= 10;
+	}
+	char* a = (char*)malloc((k + 1) * sizeof(char));
+	int c = 0;
+	while (t != 0) {
+		a[k - c - 1] = char('0' + (t % 10));
+		t /= 10;
+		c++;
+	}
+	a[k] = '\0';
+	return a;
+}
+
+char* str_sum(char* a, char* b) {
+	int c = strlen(a) + strlen(b);
+	char* s = (char*)malloc((c + 1) * sizeof(char));
+	for (int i = 0; i < strlen(a); i++) {
+		s[i] = a[i];
+	}
+	for (int i = 0; i < strlen(b); i++) {
+		s[strlen(a) + i] = b[i];
+	}
+	s[c] = '\0';
+	return s;
 }
 
 bool str_eq(char* a, const char* b) {
@@ -71,6 +100,8 @@ stack* infix_to_rpn(char* input) {
 			// start: ad hoc #1: just read (x)
 			// !!!!!!!!!!!!!!!!! nfa_linear_equals// at least for a*x+b
 		}
+		// def theorem_magic "Ax0 Ax1 (~$div2(x0) | ~$div2(x1) | Ex2 ($div2()))"
+		// def sum_even "Ex2 ($div2(x2) & $sum(x0,x1,x2))"
 		else if (prec(token[0]) >= 0) {
 			if (token[0] == 'E' || token[0] == 'A') {
 				token = (char*)malloc(4 * sizeof(char));
@@ -107,6 +138,7 @@ stack* infix_to_rpn(char* input) {
 				stack_pop(operators);
 			}
 			stack_push(rpn, (char*)"error");
+			stack_push(rpn, int_to_str(p - input));
 			break;
 		}
 	}
@@ -135,11 +167,14 @@ bool oprt(char* x) {
 	return false;
 }
 
-nfa* rpn_to_nfa(stack* rpn) {
+nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k) {
 	nfa** st = (nfa**)malloc(0);
 	int c = 0;
-	if (rpn->size == 1 && rpn->top->str == "error") {
-		cout << "error" << endl;
+	if (rpn->top->str == "error") {
+		stack_pop(rpn);
+		char* numb = stack_top(rpn);
+		cout << "IkbalProver: unknown symbol at position ";  
+		printf("%s\n", numb);
 		return NULL;
 	}
 	while (rpn->size != 0) {
@@ -147,41 +182,62 @@ nfa* rpn_to_nfa(stack* rpn) {
 		if (!oprt(token)) {
 			c++;
 			st = (nfa**)realloc(st, c * sizeof(nfa*));
-			char* x = handle_name(stack_top(rpn));
-			char* y = (char*)malloc((strlen("automata_lib\\") + strlen(x) + 2) * sizeof(char));
-			y[strlen("automata_lib\\")] = '\0';
-			strncpy(y, "automata_lib\\", strlen("automata_lib\\"));
-			int l1 = strlen(y);
-			for (int i = l1; i < l1 + strlen(x); i++) {
-				y[i] = x[i - l1];
+			nfa* a = NULL;
+			for (int i = 0; i < k; i++) {
+				if (str_eq((*names)[i], token)) {
+					a = (*nfas)[i];
+				}
 			}
-			y[l1 + strlen(x)] = '\0';
-
-			st[c - 1] = nfa_read(y);
+			if (!a) {
+				cout << "IkbalProver: no automata with name ";
+				printf("%s\n", token);
+				return NULL;
+			}
+			st[c - 1] = a;
 		}
 		else if (token[0] == '&') {
-			nfa* a = nfa_intersect(st[c - 1], st[c - 2]);
+			if (c <= 1) {
+				cout << "IkbalProver: something wrong with formula";
+				return NULL;
+			}
+			nfa* a = nfa_intersect(st[c - 2], st[c - 1]);
 			st = (nfa**)realloc(st, (c - 1) * sizeof(nfa*));
 			st[c - 2] = a;
 			c--;
 		}
 		else if (token[0] == '|') {
+			if (c <= 1) {
+				cout << "IkbalProver: something wrong with formula";
+				return NULL;
+			}
 			nfa* a = nfa_union(st[c - 1], st[c - 2]);
 			st = (nfa**)realloc(st, (c - 1) * sizeof(nfa*));
 			st[c - 2] = a;
 			c--;
 		}
 		else if (token[0] == '~') {
+			if (c <= 0) {
+				cout << "IkbalProver: something wrong with formula";
+				return NULL;
+			}
 			nfa* a = nfa_complement(st[c - 1]);
 			st[c - 1] = a;
 		}
 		else if (token[0] == 'E') {
+			if (c <= 0) {
+				cout << "IkbalProver: something wrong with formula";
+				return NULL;
+			}
 			nfa* a = st[c - 1];
 			int coord = token[2] - '0';
 			a = nfa_projection(a, coord);
 			st[c - 1] = a;
 		}
 		else if (token[0] == 'A') {
+			if (c <= 0) {
+				cout << "IkbalProver: something wrong with formula";
+				return NULL;
+			}
 			nfa* a = st[c - 1];
 			int coord = token[2] - '0';
 			a = nfa_complement(a);
@@ -190,6 +246,10 @@ nfa* rpn_to_nfa(stack* rpn) {
 			st[c - 1] = a;
 		}
 		stack_pop(rpn);
+	}
+	if (c != 1) {
+		cout << "IkbalProver: something wrong with formula";
+		return NULL;
 	}
 	return st[0];
 }
@@ -223,7 +283,7 @@ int* parse_argument(char* input) {
 	return a;
 }
 
-void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
+int parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 	int p = 0;
 	int t = p;
 	for (; input[t] != ' ' && input[t] != '\n'; t++);
@@ -240,15 +300,25 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 		}
 		if (redef == -1) {
 			*names = (char**)realloc(*names, (*k + 1) * sizeof(char*));
-			(*names)[*k] = substr(input, p, t - 1); // def test "~($div2(x) & $div3(x))"
+			(*names)[*k] = substr(input, p, t - 1);
 			for (p = t + 1, t += 2; input[t] != '\"'; t++);
 			*nfas = (nfa**)realloc(*nfas, (*k + 1) * sizeof(nfa*));
-			(*nfas)[*k] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
-			(*k)++;
+			nfa* a = rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1)), nfas, names, *k);
+			if (!a) {
+				*names = (char**)realloc(*names, (*k) * sizeof(char*));
+				*nfas = (nfa**)realloc(*nfas, (*k) * sizeof(nfa*));
+			}
+			else {
+				(*nfas)[*k] = a;
+				(*k)++;
+			}
 		}
 		else {
 			for (p = t + 1, t += 2; input[t] != '\"'; t++);
-			(*nfas)[redef] = (rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1))));
+			nfa* a = rpn_to_nfa(infix_to_rpn(substr(input, p + 1, t - 1)), nfas, names, *k);
+			if (a) {
+				(*nfas)[redef] = a;
+			}
 		}
 	}
 	else if (str_eq(command, "eval")) {
@@ -298,14 +368,15 @@ void parse_input(char* input, nfa*** nfas, char*** names, int* k) {
 	else if (str_eq(command, "help")) {
 		cout << "In progress..." << endl;
 	}
+	else if (str_eq(command, "exit")) {
+		return 1;
+	}
 	else {
 		cout << "Inavalid input. See \"help\" command" << endl;
 	}
-	return;
+	return 0;
 }
 
-// def name "$div2(x) & ~$div3(x)"
-// eval "$name(33)"
 // def leq "Ex0 ($sum(x0,x1,x2))"
 // eval "$leq(2,3)"
 // def test "Ex0 ($div3(x0) & $div2(x0))"
@@ -316,21 +387,24 @@ void cli() {
 
 	nfa** nfas = (nfa**)malloc(0 * sizeof(nfa));
 	char** names = (char**)malloc(0 * sizeof(char));
+	char* path = (char*)automata_folder;
+	//strcat(path, "*.txt");
 	hFile = _findfirst("automata_lib\\*.txt", &c_file);
+	int automata_path_len = strlen(automata_folder);
 	int i = 0;
 	do {
 		names = (char**)realloc(names, (i + 1) * sizeof(char*));
 		nfas = (nfa**)realloc(nfas, (i + 1) * sizeof(nfa*));
 		int j = 0;
-		for (; j < 260 && c_file.name[j] != '.'; j++);
+		for (; j < 0xFF && c_file.name[j] != '.'; j++);
 		names[i] = substr(c_file.name, 0, j - 1);
 
-		char* n = substr((char*)"automata_lib\\", 0, 13);
-		n = (char*)realloc(n, 13 + (j + 4) * (sizeof(char)));
-		for (int h = 13; h < 13 + j; h++) {
-			n[h] = c_file.name[h - 13];
+		char* n = substr((char*)automata_folder, 0, automata_path_len);
+		n = (char*)realloc(n, strlen(automata_folder) + (j + 4) * (sizeof(char)));
+		for (int h = automata_path_len; h < automata_path_len + j; h++) {
+			n[h] = c_file.name[h - automata_path_len];
 		}
-		n[13 + j] = '.', n[14 + j] = 't', n[15 + j] = '.x', n[16 + j] = 't', n[17 + j] = '\0';
+		n[automata_path_len + j] = '.', n[14 + j] = 't', n[15 + j] = '.x', n[16 + j] = 't', n[17 + j] = '\0';
 		nfas[i] = nfa_read(n);
 		i++;
 	} while (_findnext(hFile, &c_file) == 0);
@@ -342,6 +416,9 @@ void cli() {
 		int buffsize = 128;
 		char* input = (char*)malloc(buffsize * sizeof(char));
 		fgets(input, buffsize, stdin);
-		parse_input(input, &nfas, &names, &k);
+		int x = parse_input(input, &nfas, &names, &k);
+		if (x == 1) {
+			break;
+		}
 	}
 }
