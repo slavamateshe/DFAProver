@@ -61,3 +61,4 @@ nfa* nfa_cut_leading_zeros(nfa* a);
 
 nfa* nfa_to_dfa(nfa* a);
 nfa* nfa_union_minimal(nfa* a, nfa* b);
+nfa* nfa_from_regex(const char* s);
