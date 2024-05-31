@@ -305,19 +305,32 @@ nfa* nfa_by_word(const char* word, int size)
 void nfa_closure(nfa* a) //a+
 {
 	node* curr = NULL;
+
 	for (node* end = a->end; end; end = end->next)
 	{
 		for (int symb = 0; symb < (1 << a->dim); ++symb)
 		{
-			for (node* curr = a->g->adj_list[0].symbols[symb].head; curr; curr = curr->next)
+			for (node* start = a->start; start; start = start->next)
 			{
-				nfa_add(a, end->q, symb, curr->q);
+				for (node* curr = a->g->adj_list[start->q].symbols[symb].head; curr; curr = curr->next)
+					nfa_add(a, end->q, symb, curr->q);
 			}
 		}
 	}
 }
 
-nfa* hr_lang(const char* input)
+
+//* - 0 or more
+//? - 0 or 1
+
+nfa* add_empty_word(nfa* a) //a?
+{
+	nfa* b = nfa_init(0, 1, node_get(0), node_get(0)); //"empty" automata that accepts only empty word
+	nfa* c = nfa_extend(b, 0);
+	return nfa_union(a, c);
+}
+
+nfa* get_regex(const char* input, char** p)
 {
 	int len = strlen(input), size = 0, k = 0;
 	char* str = NULL;
@@ -328,19 +341,15 @@ nfa* hr_lang(const char* input)
 	char* symb1 = (char*)malloc(1); //(
 	char* symb2 = (char*)malloc(1); //|
 
-	symb1[0] = '(';
-	symb2[0] = '|';
+	*symb1 = '(';
+	*symb2 = '|';
 
-	if (input[0] != '(')
-	{
-		cout << "Invalid input" << endl;
-		return NULL;
-	}
+	char* symb = (char *) input;
 
-	for (int i = 0; i < len; ++i)
+	for (; *symb != '\0'; ++symb)
 	{
 
-		switch (input[i])
+		switch (*symb)
 		{
 		case '(':
 			stack_push(s, symb1);
@@ -349,7 +358,11 @@ nfa* hr_lang(const char* input)
 		case ')':
 			if (stack_is_empty(s))
 			{
-				cout << "Invalid input" << endl;
+				*p = symb;
+
+				for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+				free(nfas); free(symb1);
+				free(symb2); stack_free(s);
 				return NULL;
 			}
 
@@ -361,16 +374,40 @@ nfa* hr_lang(const char* input)
 					free(str); str = NULL;
 					size = 0;
 				}
+				else
+				{
+					*p = symb - size - 1;
+
+					for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+					free(nfas); free(symb1);
+					free(symb2); stack_free(s);
+					return NULL;
+				}
 			}
 			else
 			{
+				if (!curr) {
+					*p = symb;
+
+					for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+					free(nfas); free(symb1);
+					free(symb2); stack_free(s);
+					return NULL;
+				}
 				curr = nfa_union(curr, nfas[k - 1]);
+				nfa_to_dot(curr, "test.dot");
+				nfas = (nfa**)realloc(nfas, (k - 1) * sizeof(nfa*));
+				k--;
 
 				while (s->top->str[0] != '(' && !stack_is_empty(s))
 					stack_pop(s);
 				if (stack_is_empty(s))
 				{
-					cout << "Invalid input" << endl;
+					*p = symb;
+
+					for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+					free(nfas); free(symb1);
+					free(symb2); stack_free(s);
 					return NULL;
 				}
 			}
@@ -378,6 +415,14 @@ nfa* hr_lang(const char* input)
 			break;
 
 		case '|':
+			if (s->top->str[0] == '|' && !curr)
+			{
+				*p = symb;
+				for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+				free(nfas); free(symb1);
+				free(symb2); stack_free(s);
+				return NULL;
+			}
 			nfas = (nfa**)realloc(nfas, (k + 1) * sizeof(nfa*));
 			nfas[k] = curr;
 			curr = NULL;
@@ -386,7 +431,40 @@ nfa* hr_lang(const char* input)
 			break;
 
 		case '+':
+			if (*(symb - 1) != ')')
+			{
+				*p = symb;
+				for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+				free(nfas); free(symb1);
+				free(symb2); stack_free(s);
+				return NULL;
+			}
 			nfa_closure(curr);
+			break;
+
+		case '?':
+			if (*(symb - 1) != ')')
+			{
+				*p = symb;
+				for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+				free(nfas); free(symb1);
+				free(symb2); stack_free(s);
+				return NULL;
+			}
+			curr = add_empty_word(curr);
+			break;
+
+		case '*':
+			if (*(symb - 1) != ')')
+			{
+				*p = symb;
+				for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+				free(nfas); free(symb1);
+				free(symb2); stack_free(s);
+				return NULL;
+			}
+			nfa_closure(curr);
+			curr = add_empty_word(curr);
 			break;
 
 		case ' ':
@@ -397,7 +475,7 @@ nfa* hr_lang(const char* input)
 				str = (char*)malloc(1);
 			else
 				str = (char*)realloc(str, size + 1);
-			str[size] = input[i];
+			str[size] = *symb;
 			size++;
 			break;
 		}
@@ -405,14 +483,31 @@ nfa* hr_lang(const char* input)
 
 	if (!stack_is_empty(s))
 	{
-		cout << "Invalid input" << endl;
+		*p = symb;
+		for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+		free(nfas); free(symb1);
+		free(symb2); stack_free(s);
 		return NULL;
 	}
 
-	else {
-		for (int i = 0; i < k; ++i)
-			curr = nfa_union(nfas[i], curr);
-	}
+	for (int i = 0; i < size; ++i) nfa_free(nfas[k]);
+	free(nfas); free(symb1);
+	free(symb2); stack_free(s);
 
 	return curr;
+}
+
+nfa* nfa_from_regex(const char* s)
+{
+	char* p = NULL;
+	nfa* a = get_regex(s, &p);
+	if (p)
+	{
+		cout << "Invalid input" << endl;
+		cout << s << endl;
+		for (char* symb = (char*)s; symb != p; ++symb) cout << '~';
+		cout << '^';
+		return NULL;
+	}
+	return a;
 }

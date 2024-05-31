@@ -70,11 +70,13 @@ bool node_in_list(node* a, node* list) {
 }
 
 void list_free(node* n) {
-	for (node* t = n->next; t; t = t->next) {
+	if (n) {
+		for (node* t = n->next; t; t = t->next) {
+			free(n);
+			n = t;
+		}
 		free(n);
-		n = t;
 	}
-	free(n);
 }
 
 
@@ -182,6 +184,12 @@ void stack_pop(stack* s) {
 		}
 		s->size--;
 	}
+}
+
+void stack_free(stack* s)
+{
+	while (s->top) stack_pop(s);
+	free(s);
 }
 
 char* stack_top(stack* s) {

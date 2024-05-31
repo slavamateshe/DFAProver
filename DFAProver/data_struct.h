@@ -42,5 +42,6 @@ void graph_free(graph* g, int dim);
 stack* stack_init();
 void stack_push(stack* s, char* x);
 void stack_pop(stack* s);
+void stack_free(stack* s);
 char* stack_top(stack* s);
 int stack_is_empty(stack* s);

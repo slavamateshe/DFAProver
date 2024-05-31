@@ -3,6 +3,9 @@
 
 void cli();
 
-nfa* nfa_by_word(const char* word);
+nfa* nfa_by_word(const char* word, int size);
 void nfa_closure(nfa* a);
-nfa* hr_lang(const char* input);
+nfa* get_regex(const char* input, char **p);
+void nfa_closure(nfa* a);
+nfa* add_empty_word(nfa* a);
+nfa* nfa_from_regex(const char* s);

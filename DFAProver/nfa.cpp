@@ -398,7 +398,7 @@ nfa* miss_trans(nfa* a)
 
 	b->start = start;
 	b->end = end;
-	return b;//nfa_minimize(nfa_to_dfa(b));
+	return nfa_minimize(nfa_to_dfa(b));
 }
 
 nfa* nfa_to_dfa(nfa* a) {
@@ -493,6 +493,30 @@ nfa* nfa_intersect(nfa* a, nfa* b) {
 	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
 }
 
+nfa* nfa_intersect2(nfa* n1, nfa* n2) {
+	nfa* new_n = nfa_cartesian(n1, n2);
+
+	int state_num = 0;
+	node* new_start = NULL;
+	for (node* start1 = n1->start; start1; start1 = start1->next) {
+		for (node* start2 = n2->start; start2; start2 = start2->next) {
+			state_num = start2->q * n1->n + start1->q;
+			new_start = list_add(new_start, node_get(state_num));
+		}
+	}
+	new_n->start = new_start;
+
+	node* new_end = NULL;
+	for (node* end1 = n1->end; end1; end1 = end1->next) {
+		for (node* end2 = n2->end; end2; end2 = end2->next) {
+			state_num = end2->q * n1->n + end1->q;
+			new_end = list_add(new_end, node_get(state_num));
+		}
+	}
+	new_n->end = new_end;
+	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
+}
+
 nfa* nfa_intersect_minimal(nfa* a, nfa* b) {
 	nfa* result = nfa_intersect(a, b);
 	nfa* temp = nfa_to_dfa(result);
@@ -500,6 +524,8 @@ nfa* nfa_intersect_minimal(nfa* a, nfa* b) {
 	result = nfa_minimize(temp), nfa_free(temp);
 	return result;
 }
+
+
 
 nfa* nfa_union(nfa* a, nfa* b) {
 
@@ -541,7 +567,15 @@ nfa* nfa_union(nfa* a, nfa* b) {
 	nfa_free(n1);
 	nfa_free(n2);
 
-	return new_n;// nfa_minimize(nfa_to_dfa(new_n));
+	return nfa_minimize(new_n);// nfa_minimize(nfa_to_dfa(new_n));
+}
+
+nfa* nfa_union_minimal(nfa* a, nfa* b) {
+	nfa* result = nfa_union(a, b);
+	nfa* temp = nfa_to_dfa(result);
+	nfa_free(result);
+	result = nfa_minimize(temp), nfa_free(temp);
+	return result;
 }
 
 nfa* nfa_complement(nfa* a) { //my version (it works)
@@ -716,6 +750,7 @@ nfa* nfa_cut_leading_zeros(nfa* a) {
 	node* start = node_get(0);
 	nfa* zeros = nfa_init(a->dim, 1, start, start);
 	nfa_add(zeros, 0, 0, 0);
+	//nfa_to_dot(a, "test.dot");
 	return nfa_left_quot(a, zeros);
 }
 
@@ -751,6 +786,8 @@ nfa* nfa_linear_equals(int a) {
 }
 
 void nfa_dfs(nfa* a, int q, int n, int* vis) {
+	if (q >= a->n) return;
+
 	int state_num;
 
 	for (int symb = 0; symb < (1 << a->dim); symb++) {
@@ -770,7 +807,7 @@ nfa* nfa_left_quot(nfa* a, nfa* b) {
 	nfa* lq = nfa_copy(a);
 	nfa* n = NULL;
 
-	free(lq->end);
+	list_free(lq->end);
 
 	lq->end = NULL;
 
