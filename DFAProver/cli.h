@@ -1,11 +1,19 @@
 #pragma once
+
+#ifndef CLI_H
+#define CLI_H
+
+#include <iostream>
+#include <fstream>
+#include <filesystem>
+#include <string>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <io.h>
+#include <time.h>
 #include "nfa.h"
 
 void cli();
 
-nfa* nfa_by_word(const char* word, int size);
-void nfa_closure(nfa* a);
-nfa* get_regex(const char* input, char **p);
-void nfa_closure(nfa* a);
-nfa* add_empty_word(nfa* a);
-nfa* nfa_from_regex(const char* s);
+#endif

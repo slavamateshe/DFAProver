@@ -53,7 +53,7 @@ nfa* nfa_minimize(nfa* x);
 nfa* nfa_min(nfa* a);
 
 stack* infix_to_rpn(char* input);
-nfa* rpn_to_nfa(stack* rpn);
+nfa* rpn_to_nfa(stack* rpn, nfa*** nfas, char*** names, int k);
 char* substr(char* string, int start, int end);
 nfa* nfa_right_quot(nfa* a, nfa* b);
 nfa* nfa_left_quot(nfa* a, nfa* b);

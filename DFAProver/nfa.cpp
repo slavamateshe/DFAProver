@@ -154,18 +154,34 @@ void nfa_to_dot(nfa* NFA, const char* s) {
 	f.close();
 }
 
+int nfa_DFS(node* n, int* checked, nfa* NFA) {
+	checked[n->q] = 1;
+	for (node* t = NFA->end; t; t = t->next) {
+		if (n->q == t->q) return 1;
+	}
+	for (node* t = NFA->g->adj_list[n->q].symbols[0].head; t; t = t->next) {
+		if (checked[t->q] == 0 && nfa_DFS(t, checked, NFA)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 int nfa_check(nfa* NFA, int* str) {
 	//when ||str|| == 0 the function doesnt work correctly
 	//we have to find all the reachable states from initial states
 	//and then compare them with the final states
 
-	if (!NFA->dim) {
-		for (node* start = NFA->start; start; start = start->next) {
-			for (node* curr = NFA->g->adj_list[start->q].symbols[0].head; curr; curr = curr->next) {
-				for (node* end = NFA->end; end; end = end->next) {
-					if (curr->q == end->q) return 1;
+	if (NFA->dim == 0) {
+		int k = 0;
+		int* checked = (int*)calloc(NFA->n, sizeof(int));
+		for (node* n = NFA->start; n; n = n->next) {
+			if (checked[n->q] == 0) {
+				if (nfa_DFS(n, checked, NFA)) {
+					return 1;
 				}
 			}
+			checked = (int*)calloc(NFA->n, sizeof(int));
 		}
 		return 0;
 	}
@@ -398,7 +414,7 @@ nfa* miss_trans(nfa* a)
 
 	b->start = start;
 	b->end = end;
-	return nfa_minimize(nfa_to_dfa(b));
+	return b; // nfa_minimize(nfa_to_dfa(b)); idk is it must have
 }
 
 nfa* nfa_to_dfa(nfa* a) {
@@ -411,7 +427,7 @@ nfa* nfa_to_dfa(nfa* a) {
 		start_num += (1 << (curr->q));
 
 	node* start = node_get(start_num);
-	nfa* result = nfa_init(a->dim, 1 << a->n, start, NULL);
+	nfa* result = nfa_init(a->dim, (1 << a->n), start, NULL);
 	node* end = NULL;
 
 	for (node* curr = a->end; curr; curr = curr->next) {
@@ -461,7 +477,7 @@ nfa* nfa_cartesian(nfa* n1, nfa* n2) {
 			}
 		}
 	}
-	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 nfa* nfa_intersect(nfa* a, nfa* b) {
@@ -492,40 +508,6 @@ nfa* nfa_intersect(nfa* a, nfa* b) {
 	nfa_free(n2);
 	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
 }
-
-nfa* nfa_intersect2(nfa* n1, nfa* n2) {
-	nfa* new_n = nfa_cartesian(n1, n2);
-
-	int state_num = 0;
-	node* new_start = NULL;
-	for (node* start1 = n1->start; start1; start1 = start1->next) {
-		for (node* start2 = n2->start; start2; start2 = start2->next) {
-			state_num = start2->q * n1->n + start1->q;
-			new_start = list_add(new_start, node_get(state_num));
-		}
-	}
-	new_n->start = new_start;
-
-	node* new_end = NULL;
-	for (node* end1 = n1->end; end1; end1 = end1->next) {
-		for (node* end2 = n2->end; end2; end2 = end2->next) {
-			state_num = end2->q * n1->n + end1->q;
-			new_end = list_add(new_end, node_get(state_num));
-		}
-	}
-	new_n->end = new_end;
-	return new_n;//nfa_minimize(nfa_to_dfa(new_n));
-}
-
-nfa* nfa_intersect_minimal(nfa* a, nfa* b) {
-	nfa* result = nfa_intersect(a, b);
-	nfa* temp = nfa_to_dfa(result);
-	nfa_free(result);
-	result = nfa_minimize(temp), nfa_free(temp);
-	return result;
-}
-
-
 
 nfa* nfa_union(nfa* a, nfa* b) {
 
@@ -567,6 +549,7 @@ nfa* nfa_union(nfa* a, nfa* b) {
 	nfa_free(n1);
 	nfa_free(n2);
 
+	return new_n;
 	return nfa_minimize(new_n);// nfa_minimize(nfa_to_dfa(new_n));
 }
 
@@ -600,6 +583,7 @@ nfa* nfa_complement(nfa* a) { //my version (it works)
 		if (fl) new_end = list_add(new_end, node_get(i));
 	}
 
+	b->end = new_end;
 	list_free(c->end);
 	c->end = new_end;
 
@@ -646,7 +630,7 @@ nfa* nfa_projection(nfa* a, int n) {
 			}
 		}
 	}
-	return b;//nfa_minimize(nfa_to_dfa(b));
+	return b;
 }
 
 nfa* nfa_extend(nfa* a, int n) {
@@ -670,7 +654,7 @@ nfa* nfa_extend(nfa* a, int n) {
 			}
 		}
 	}
-	return b;//nfa_minimize(nfa_to_dfa(b));
+	return b;
 }
 
 nfa* nfa_swap(nfa* n, int i, int j) {
@@ -695,7 +679,7 @@ nfa* nfa_swap(nfa* n, int i, int j) {
 			}
 		}
 	}
-	return new_n;// nfa_minimize(nfa_to_dfa(new_n));
+	return new_n;
 }
 
 
@@ -722,12 +706,12 @@ nfa* nfa_sum_equals(nfa* a, nfa* b) {
 	v = nfa_extend(v, 1);
 	v = nfa_extend(v, 4);
 
-	nfa* w = nfa_read("sum.txt");
+	nfa* w = nfa_read("automata_lib\\sum.txt");
 	w = nfa_extend(w, 0);
 	w = nfa_extend(w, 0);
 	w = nfa_swap(w, 2, 4);
 
-	nfa* eq = nfa_read("equals.txt");
+	nfa* eq = nfa_read("automata_lib\\equals.txt");
 	eq = nfa_extend(eq, 0);
 	eq = nfa_extend(eq, 2);
 	eq = nfa_extend(eq, 2);
@@ -750,7 +734,6 @@ nfa* nfa_cut_leading_zeros(nfa* a) {
 	node* start = node_get(0);
 	nfa* zeros = nfa_init(a->dim, 1, start, start);
 	nfa_add(zeros, 0, 0, 0);
-	//nfa_to_dot(a, "test.dot");
 	return nfa_left_quot(a, zeros);
 }
 
@@ -763,7 +746,7 @@ nfa* nfa_linear_equals(int a) {
 	int k = 0;
 	for (; (a >> k) > 0; k++);
 	nfa** deg2 = (nfa**)malloc(k * sizeof(nfa*));
-	deg2[0] = nfa_read("equals.txt"); // x = y
+	deg2[0] = nfa_read("automata_lib\\equals.txt"); // x = y
 	for (int i = 1; i < k; i++) {
 		deg2[i] = nfa_sum_equals(deg2[i - 1], deg2[i - 1]); // x = (2^k)*y
 	}
